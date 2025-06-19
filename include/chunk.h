@@ -1,6 +1,8 @@
 #ifndef ASBTL_CHUNK_H
 #define ASBTL_CHUNK_H
 
+#include "value.h"
+
 #include <stdint.h>
 
 typedef enum op_code {
@@ -13,14 +15,17 @@ typedef enum op_code {
 // A chunk is the abstraction that represents a bytecode array and its
 // associated information such as the constants it refers to.
 typedef struct chunk {
-  int capacity;
-  int count;
-  uint8_t *code;  // Bytecode array
-  int *constants; // Constants pool
+  unsigned int capacity;
+  unsigned int count;
+  uint8_t *code;       // Bytecode array
+  ValueList constants; // Constants pool (values list)
 } Chunk;
 
 void initChunk(Chunk *chunk);
 void appendChunk(Chunk *chunk, uint8_t byte);
 void freeChunk(Chunk *chunk);
+
+// Appends to the constant pool, returning the array index it was written to.
+unsigned int appendConstant(Chunk *chunk, Value constant);
 
 #endif

@@ -3,5 +3,6 @@
 
 void chunk_tests();
 void scanner_tests();
+void value_tests();
 
 #endif

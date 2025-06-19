@@ -1,15 +1,16 @@
 #include "chunk.h"
 
 #include "memory.h"
+#include "value.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
 void initChunk(Chunk *chunk) {
-  chunk->capacity  = 0;
-  chunk->count     = 0;
-  chunk->code      = NULL;
-  chunk->constants = NULL;
+  chunk->capacity = 0;
+  chunk->count    = 0;
+  chunk->code     = NULL;
+  initValueList(&chunk->constants);
 }
 
 void appendChunk(Chunk *chunk, uint8_t byte) {
@@ -25,5 +26,11 @@ void appendChunk(Chunk *chunk, uint8_t byte) {
 
 void freeChunk(Chunk *chunk) {
   FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
+  freeValueList(&chunk->constants);
   initChunk(chunk);
+}
+
+unsigned int appendConstant(Chunk *chunk, Value constant) {
+  appendValueList(&chunk->constants, constant);
+  return chunk->constants.count - 1;
 }

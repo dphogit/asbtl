@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "test_runners.h"
 #include "token.h"
 
 #include "minunit.h"
@@ -8,10 +9,10 @@ MU_TEST(test_initScanner) {
 
   initScanner(&scanner, "1 + 2");
 
-  mu_check(*scanner.start == '1');
-  mu_check(*scanner.cur == '1');
-  mu_check(scanner.line == 1);
-  mu_check(scanner.col == 1);
+  ASSERT_EQ_INT('1', *scanner.start);
+  ASSERT_EQ_INT('1', *scanner.cur);
+  ASSERT_EQ_INT(1, scanner.line);
+  ASSERT_EQ_INT(1, scanner.col);
 }
 
 MU_TEST(test_scanNext_number) {
@@ -20,9 +21,9 @@ MU_TEST(test_scanNext_number) {
 
   Token tok = scanNext(&scanner);
 
-  mu_check(*tok.start == '1');
-  mu_check(tok.len == 3);
-  mu_check(tok.type == TOK_NUMBER);
+  ASSERT_EQ_INT('1', *tok.start);
+  ASSERT_EQ_INT(3, tok.len);
+  ASSERT_EQ_INT(TOK_NUMBER, tok.type);
 }
 
 MU_TEST(test_scanNext_operators) {
@@ -30,24 +31,18 @@ MU_TEST(test_scanNext_operators) {
   initScanner(&scanner, "+ -");
 
   Token tok = scanNext(&scanner);
-  mu_check(*tok.start == '+');
-  mu_check(tok.len == 1);
-  mu_check(tok.type == TOK_PLUS);
+  ASSERT_EQ_INT('+', *tok.start);
+  ASSERT_EQ_INT(1, tok.len);
+  ASSERT_EQ_INT(TOK_PLUS, tok.type);
 
   tok = scanNext(&scanner);
-  mu_check(*tok.start == '-');
-  mu_check(tok.len == 1);
-  mu_check(tok.type == TOK_MINUS);
+  ASSERT_EQ_INT('-', *tok.start);
+  ASSERT_EQ_INT(1, tok.len);
+  ASSERT_EQ_INT(TOK_MINUS, tok.type);
 }
 
 MU_TEST_SUITE(scanner_tests) {
   MU_RUN_TEST(test_initScanner);
   MU_RUN_TEST(test_scanNext_number);
   MU_RUN_TEST(test_scanNext_operators);
-}
-
-int main(void) {
-  MU_RUN_SUITE(scanner_tests);
-  MU_REPORT();
-  return MU_EXIT_CODE;
 }

@@ -2,10 +2,11 @@ SRC_DIR = src
 UNITTEST_DIR = unittest
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objs
-UNITTEST_BIN_DIR = $(BUILD_DIR)/$(UNITTEST_DIR)
+OBJ_UNITTEST_DIR = $(OBJ_DIR)/unittests
 INCLUDE_DIR = include
 
 TARGET = $(BUILD_DIR)/asbtl
+UNITTEST_TARGET = $(BUILD_DIR)/run_unittests
 
 CC = gcc
 CFLAGS = -Wall -Wextra -I$(INCLUDE_DIR) -g
@@ -15,9 +16,9 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 OBJS_NO_MAIN = $(filter-out $(OBJ_DIR)/main.o,$(OBJS))
 
-# unittest/scanner_test.c -> build/unittest/scanner_test
-UNITTEST_SRCS = $(wildcard $(UNITTEST_DIR)/*_test.c)
-UNITTEST_BINS = $(patsubst $(UNITTEST_DIR)/%.c,$(UNITTEST_BIN_DIR)/%,$(UNITTEST_SRCS))
+# unittest/scanner_test.c -> build/objs/scanner_test.o
+UNITTEST_SRCS = $(wildcard $(UNITTEST_DIR)/*.c)
+UNITTEST_OBJS = $(patsubst $(UNITTEST_DIR)/%.c,$(OBJ_UNITTEST_DIR)/%.o,$(UNITTEST_SRCS))
 
 .PHONY: all clean unittest
 
@@ -37,23 +38,20 @@ $(BUILD_DIR):
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(UNITTEST_BIN_DIR):
-	mkdir -p $(UNITTEST_BIN_DIR)
+$(OBJ_UNITTEST_DIR):
+	mkdir -p $(OBJ_UNITTEST_DIR)
 
-# Build and run each unit test binary
-unittest: $(UNITTEST_BINS) | $(BUILD_DIR)
-	@for bin in $(UNITTEST_BINS); do \
-		echo "Running $$bin..."; \
-		./$$bin; \
-	done
+# Run the unit tests binary
+unittest: $(UNITTEST_TARGET)
+	./$(UNITTEST_TARGET)
 
-# Build each unittest executable from it's objects and non-main src objects
-$(UNITTEST_BIN_DIR)/%: $(UNITTEST_BIN_DIR)/%.o $(OBJS_NO_MAIN)
-	$(CC) $(CFLAGS) -o $@ $^
+# Build the unit tests binary with the non-main src and unit test objects
+$(UNITTEST_TARGET): $(UNITTEST_OBJS) $(OBJS_NO_MAIN) | $(BUILD_DIR)
+	$(CC) -I$(INCLUDE_DIR) -o $@ $^
 
-# Compile each unittest/*.c file to build/unittest/*.o files
-$(UNITTEST_BIN_DIR)/%.o: $(UNITTEST_DIR)/%.c | $(UNITTEST_BIN_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compile unittest .c files to .o files
+$(OBJ_UNITTEST_DIR)/%.o: $(UNITTEST_DIR)/%.c | $(OBJ_UNITTEST_DIR)
+	$(CC) -I$(INCLUDE_DIR) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)

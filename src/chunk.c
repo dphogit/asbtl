@@ -6,6 +6,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
+const char *opCodeStr(OpCode opCode) {
+  switch (opCode) {
+    case OP_ADD:      return "OP_ADD";
+    case OP_SUBTRACT: return "OP_SUBTRACT";
+    case OP_CONSTANT: return "OP_CONSTANT";
+    case OP_RETURN:   return "OP_RETURN";
+  }
+
+  return "unknown opcode";
+}
+
 void initChunk(Chunk *chunk) {
   chunk->capacity = 0;
   chunk->count    = 0;

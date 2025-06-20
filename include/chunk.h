@@ -6,11 +6,13 @@
 #include <stdint.h>
 
 typedef enum op_code {
-  OP_PLUS,
-  OP_MINUS,
+  OP_ADD,
+  OP_SUBTRACT,
   OP_CONSTANT,
   OP_RETURN,
 } OpCode;
+
+const char *opCodeStr(OpCode opCode);
 
 // A chunk is the abstraction that represents a bytecode array and its
 // associated information such as the constants it refers to.

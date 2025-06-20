@@ -1,28 +1,21 @@
-#include "scanner.h"
-#include "token.h"
+#include "chunk.h"
+#include "compiler.h"
+#include "debug.h"
 
 #include <stdbool.h>
-#include <stdio.h>
 
 int main(int argc, char *argv[]) {
   char *source = "1 + 2 - 3"; // TODO: Read from argv
+  int exitCode = 1;
 
-  Scanner scanner;
-  initScanner(&scanner, source);
+  Chunk chunk;
+  initChunk(&chunk);
 
-  while (true) {
-    Token tok = scanNext(&scanner);
-
-    if (tok.type == TOK_ERR) {
-      printf("TOK_ERR\n");
-      break;
-    }
-
-    printf("%s '%.*s'\n", tokTypeStr(tok.type), tok.len, tok.start);
-
-    if (tok.type == TOK_EOF)
-      break;
+  if (compile(source, &chunk)) {
+    disassembleChunk(&chunk, "main");
+    exitCode = 0;
   }
 
-  return 0;
+  freeChunk(&chunk);
+  return exitCode;
 }

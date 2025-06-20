@@ -15,6 +15,7 @@ void initValueList(ValueList *list);
 void appendValueList(ValueList *list, Value value);
 void freeValueList(ValueList *list);
 
+void printValue(Value value);
 bool valuesEq(Value a, Value b);
 
 #endif

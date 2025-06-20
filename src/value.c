@@ -1,6 +1,7 @@
 #include "value.h"
 #include "memory.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 void initValueList(ValueList *list) {
@@ -23,6 +24,10 @@ void appendValueList(ValueList *list, Value value) {
 void freeValueList(ValueList *list) {
   FREE_ARRAY(Value, list->values, list->capacity);
   initValueList(list);
+}
+
+void printValue(Value value) {
+  printf("%g", value);
 }
 
 bool valuesEq(Value a, Value b) {

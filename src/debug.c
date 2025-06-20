@@ -1,0 +1,43 @@
+#include "debug.h"
+#include "chunk.h"
+
+#include <stdio.h>
+
+static unsigned int constant(Chunk *chunk, unsigned int offset) {
+  const char *name      = opCodeStr(chunk->code[offset]);
+  uint8_t constantIndex = chunk->code[offset + 1];
+
+  printf("%-16s %4d '", name, constantIndex);
+  printValue(chunk->constants.values[constantIndex]);
+  printf("'\n");
+
+  return offset + 2;
+}
+
+static unsigned int single(Chunk *chunk, unsigned int offset) {
+  printf("%s\n", opCodeStr(chunk->code[offset]));
+  return offset + 1;
+}
+
+// Returns the offset of the next instruction in the chunk to disassemble
+static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
+  printf("%04d ", offset);
+
+  OpCode opCode = chunk->code[offset];
+  switch (opCode) {
+    case OP_CONSTANT: return constant(chunk, offset);
+    case OP_ADD:
+    case OP_SUBTRACT:
+    case OP_RETURN:   return single(chunk, offset);
+    default:          printf("Unknown opcode %d\n", opCode); return offset + 1;
+  }
+}
+
+void disassembleChunk(Chunk *chunk, const char *name) {
+  printf("== %s == \n", name);
+
+  unsigned int offset = 0;
+  while (offset < chunk->count) {
+    offset = disassembleInstruction(chunk, offset);
+  }
+}

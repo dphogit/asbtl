@@ -1,21 +1,15 @@
-#include "chunk.h"
-#include "compiler.h"
-#include "debug.h"
+#include "vm.h"
 
 #include <stdbool.h>
 
 int main(int argc, char *argv[]) {
-  char *source = "1 + 2 - 3"; // TODO: Read from argv
-  int exitCode = 1;
+  // TODO: REPL, Run File
+  char *source = "1 + 2 - 3";
 
-  Chunk chunk;
-  initChunk(&chunk);
+  initVM();
 
-  if (compile(source, &chunk)) {
-    disassembleChunk(&chunk, "main");
-    exitCode = 0;
-  }
+  InterpretResult result = interpret(source);
 
-  freeChunk(&chunk);
-  return exitCode;
+  freeVM();
+  return result;
 }

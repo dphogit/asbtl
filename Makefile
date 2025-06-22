@@ -1,5 +1,5 @@
 SRC_DIR = src
-UNITTEST_DIR = unittest
+UNITTEST_DIR = unittests
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/objs
 OBJ_UNITTEST_DIR = $(OBJ_DIR)/unittests
@@ -20,7 +20,7 @@ OBJS_NO_MAIN = $(filter-out $(OBJ_DIR)/main.o,$(OBJS))
 UNITTEST_SRCS = $(wildcard $(UNITTEST_DIR)/*.c)
 UNITTEST_OBJS = $(patsubst $(UNITTEST_DIR)/%.c,$(OBJ_UNITTEST_DIR)/%.o,$(UNITTEST_SRCS))
 
-.PHONY: all clean unittest
+.PHONY: all clean unittests tests
 
 all: $(TARGET)
 
@@ -42,7 +42,7 @@ $(OBJ_UNITTEST_DIR):
 	mkdir -p $(OBJ_UNITTEST_DIR)
 
 # Run the unit tests binary
-unittest: $(UNITTEST_TARGET)
+unittests: $(UNITTEST_TARGET)
 	./$(UNITTEST_TARGET)
 
 # Build the unit tests binary with the non-main src and unit test objects
@@ -52,6 +52,9 @@ $(UNITTEST_TARGET): $(UNITTEST_OBJS) $(OBJS_NO_MAIN) | $(BUILD_DIR)
 # Compile unittest .c files to .o files
 $(OBJ_UNITTEST_DIR)/%.o: $(UNITTEST_DIR)/%.c | $(OBJ_UNITTEST_DIR)
 	$(CC) -I$(INCLUDE_DIR) -c $< -o $@
+
+tests: $(TARGET)
+	./tests/bats/bin/bats -r ./tests/suite/
 
 clean:
 	rm -rf $(BUILD_DIR)

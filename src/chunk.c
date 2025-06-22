@@ -12,9 +12,8 @@ const char *opCodeStr(OpCode opCode) {
     case OP_SUBTRACT: return "OP_SUBTRACT";
     case OP_CONSTANT: return "OP_CONSTANT";
     case OP_RETURN:   return "OP_RETURN";
+    default:          return "unknown opcode";
   }
-
-  return "unknown opcode";
 }
 
 void initChunk(Chunk *chunk) {

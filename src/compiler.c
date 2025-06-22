@@ -30,9 +30,7 @@ static void errorAt(Token *token, const char *message) {
 
   parser.panicMode = true;
 
-  // [line <line>, col <col>] error (at end | at '%.*s') <message>
-
-  fprintf(stderr, "[line %d, col %d] error", token->line, token->col);
+  fprintf(stderr, "[line %d, col %d] error ", token->line, token->col);
 
   switch (token->type) {
     case TOK_EOF: fprintf(stderr, "at end"); break;

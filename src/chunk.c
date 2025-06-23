@@ -10,10 +10,17 @@ const char *opCodeStr(OpCode opCode) {
   switch (opCode) {
     case OP_ADD:      return "OP_ADD";
     case OP_SUBTRACT: return "OP_SUBTRACT";
+    case OP_MULTIPLY: return "OP_MULTIPLY";
+    case OP_DIVIDE:   return "OP_DIVIDE";
+    case OP_FALSE:    return "OP_FALSE";
+    case OP_TRUE:     return "OP_TRUE";
+    case OP_NOT:      return "OP_NOT";
+    case OP_NEGATE:   return "OP_NEGATE";
+    case OP_NIL:      return "OP_NIL";
     case OP_CONSTANT: return "OP_CONSTANT";
     case OP_RETURN:   return "OP_RETURN";
-    default:          return "unknown opcode";
   }
+  return "unknown opcode";
 }
 
 void initChunk(Chunk *chunk) {

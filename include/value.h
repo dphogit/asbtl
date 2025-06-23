@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-typedef enum value_type { VAL_BOOL, VAL_NUM } ValueType;
+typedef enum value_type { VAL_NIL, VAL_BOOL, VAL_NUM } ValueType;
 
 typedef struct value {
   ValueType type;
@@ -14,10 +14,12 @@ typedef struct value {
 } Value;
 
 // `Value` type checkers
+#define IS_NIL(value)  ((value.type) == VAL_NIL)
 #define IS_BOOL(value) ((value).type == VAL_BOOL)
 #define IS_NUM(value)  ((value).type == VAL_NUM)
 
 // Convert from primitive C type to `Value` type
+#define NIL_VAL(value)  ((Value){VAL_NIL, {.number = 0}})
 #define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = value}})
 #define NUM_VAL(value)  ((Value){VAL_NUM, {.number = value}})
 

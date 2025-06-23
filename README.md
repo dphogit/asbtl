@@ -17,11 +17,15 @@ program   : expression ;
 
 expression: factor ( ('+' | '-') factor )* ;
 
-factor    : primary ( ('*' | '/') primary)* ;
+factor    : unary ( ('*' | '/') unary )* ;
+
+unary     : ('-' | '!') unary | primary ;
 
 primary   : NUMBER
-          | BOOLEAN
+          | 'false' | 'true' | 'nil'
+          | IDENTIFIER
           | '(' expression ')' ;
+
 ```
 
 ### Lexical Grammar
@@ -31,7 +35,6 @@ Used by the scanner to obtain the tokens from the initial input.
 ```text
 NUMBER    : DIGIT+ ('.' DIGIT+)? ;
 IDENTIFIER: ALPHA (ALPHA | DIGIT)* ;
-BOOLEAN   : 'true' | 'false' ;
 ALPHA     : 'a' ... 'z' | 'A' ... 'Z' | '_' ;
 DIGIT     : '0' ... '9' ;
 ```
@@ -46,37 +49,9 @@ Located in [tests](./tests/) and are written with [Bats](https://bats-core.readt
 Run with `make tests`.
 
 Tests should be added in the [tests/suites](./tests/suite/) folder, under a
-relevant category subfolder. This provides guidance on the projects way
-of running the binary with an input file to write test cases against.
-
-#### Example: Testing Addition
-
-To test addition functionality, add the `suite/operators/add.asbtl` and
-`suite/operators/add.bats` for the input ASBTL file and the file containing
-the test cases.
-
-```text
-// add.asbtl
-print 1 + 2
-```
-
-```bash
-# add.bats
-setup() {
-  load '../../test-helpers/common'
-  _common_setup
-}
-
-@test "add two numbers" {
-  _run_file "add.asbtl"
-  assert_success
-  assert_output '3'
-}
-```
+relevant `.bats` file.
 
 ### Unit Tests
 
 Located in [unittests](./unittests/) and are written with [minunit](https://github.com/bzgec/minunit/blob/master/README.md).
 Run with `make unittests`.
-
-Inspecting the test files should make writing new tests intuitive.

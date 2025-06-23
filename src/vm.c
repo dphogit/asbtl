@@ -26,6 +26,11 @@ static Value peek(int dist) {
   return vm.stackTop[-(dist + 1)];
 }
 
+// false and nil are "falsy", everything else is "truthy"
+static bool isFalsy(Value value) {
+  return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+}
+
 static void runtimeError(const char *format, ...) {
   int offset = vm.ip - vm.chunk->code - 1;
   int line   = vm.chunk->lines[offset];
@@ -65,41 +70,57 @@ static InterpretResult run() {
     switch (opCode) {
       case OP_ADD: {
         BINARY_OP(+);
-        break;
+        continue;
       }
       case OP_SUBTRACT: {
         BINARY_OP(-);
-        break;
+        continue;
       }
       case OP_MULTIPLY: {
         BINARY_OP(*);
-        break;
+        continue;
       }
       case OP_DIVIDE: {
         BINARY_OP(/);
-        break;
-      }
-      case OP_TRUE: {
-        push(BOOL_VAL(true));
-        break;
+        continue;
       }
       case OP_FALSE: {
         push(BOOL_VAL(false));
-        break;
+        continue;
+      }
+      case OP_TRUE: {
+        push(BOOL_VAL(true));
+        continue;
+      }
+      case OP_NOT: {
+        vm.stackTop[-1] = BOOL_VAL(isFalsy(peek(0)));
+        continue;
+      }
+      case OP_NEGATE: {
+        if (!IS_NUM(peek(0))) {
+          runtimeError("negation operand must be a number");
+          return INTERPRET_RUNTIME_ERR;
+        }
+        vm.stackTop[-1].as.number = -vm.stackTop[-1].as.number;
+        continue;
+      }
+      case OP_NIL: {
+        push(NIL_VAL());
+        continue;
       }
       case OP_CONSTANT: {
         push(READ_CONSTANT());
-        break;
+        continue;
       }
       case OP_RETURN: {
         printValue(pop());
         printf("\n");
         return INTERPRET_OK;
       }
-      default:
-        fprintf(stderr, "unknown instruction");
-        return INTERPRET_RUNTIME_ERR;
     }
+
+    fprintf(stderr, "unknown instruction");
+    return INTERPRET_RUNTIME_ERR;
   }
 
 #undef BINARY_OP

@@ -28,9 +28,17 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_CONSTANT: return constant(chunk, offset);
     case OP_ADD:
     case OP_SUBTRACT:
+    case OP_MULTIPLY:
+    case OP_DIVIDE:
+    case OP_FALSE:
+    case OP_TRUE:
+    case OP_NOT:
+    case OP_NEGATE:
     case OP_RETURN:   return single(chunk, offset);
-    default:          printf("Unknown opcode %d\n", opCode); return offset + 1;
   }
+
+  printf("Unknown opcode %d\n", opCode);
+  return offset + 1;
 }
 
 void disassembleChunk(Chunk *chunk, const char *name) {

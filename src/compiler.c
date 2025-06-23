@@ -149,16 +149,38 @@ static void primary() {
     return;
   }
 
+  if (match(TOK_NIL)) {
+    emitByte(OP_NIL);
+    return;
+  }
+
   errorCur("expect expression");
 }
 
-static void factor() {
+static void unary() {
+  // allow recursive calls to itself for multiple prefixes e.g. "--5"
+  if (match(TOK_BANG)) {
+    unary();
+    emitByte(OP_NOT);
+    return;
+  }
+
+  if (match(TOK_MINUS)) {
+    unary();
+    emitByte(OP_NEGATE);
+    return;
+  }
+
   primary();
+}
+
+static void factor() {
+  unary();
 
   while (match(TOK_STAR) || match(TOK_SLASH)) {
     TokType type = parser.prev.type;
 
-    primary();
+    unary();
 
     switch (type) {
       case TOK_STAR:  emitByte(OP_MULTIPLY); break;

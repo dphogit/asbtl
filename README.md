@@ -6,18 +6,20 @@ language from [Crafting Interpreters](https://craftinginterpreters.com/).
 - Bytecode intermediate representation
 - Stack-based VM bytecode execution
 
-## Grammar
-
-The grammars used for ASBTL.
+## Information
 
 ### Syntax Grammar
 
-Used for parsing the sequence of scanned tokens.
+Used for parsing the sequence of scanned tokens during bytecode compilation.
 
 ```text
-program   : expression
+program   : expression ;
 
-expression: NUMBER ( ('+' | '-') NUMBER )* ;
+expression: factor ( ('+' | '-') factor )* ;
+
+factor    : primary ( ('*' | '/') primary)* ;
+
+primary   : NUMBER ;
 ```
 
 ### Lexical Grammar
@@ -29,11 +31,14 @@ NUMBER: DIGIT+ ('.' DIGIT+)? ;
 DIGIT : '0' ... '9'
 ```
 
-## Tests
+## Contributing
+
+To build, run `make`.
 
 ### E2E Tests
 
 Located in [tests](./tests/) and are written with [Bats](https://bats-core.readthedocs.io/en/stable/index.html).
+Run with `make tests`.
 
 Tests should be added in the [tests/suites](./tests/suite/) folder, under a
 relevant category subfolder. This provides guidance on the projects way
@@ -67,5 +72,6 @@ setup() {
 ### Unit Tests
 
 Located in [unittests](./unittests/) and are written with [minunit](https://github.com/bzgec/minunit/blob/master/README.md).
+Run with `make unittests`.
 
 Inspecting the test files should make writing new tests intuitive.

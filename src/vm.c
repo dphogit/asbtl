@@ -32,21 +32,28 @@ void freeVM() {
 static InterpretResult run() {
 #define READ_BYTE()     (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define BINARY_OP(op)         \
+  Value b = pop(), a = pop(); \
+  push(a op b);
 
   while (true) {
     OpCode opCode = READ_BYTE();
 
     switch (opCode) {
       case OP_ADD: {
-        Value b = pop();
-        Value a = pop();
-        push(a + b);
+        BINARY_OP(+);
         break;
       }
       case OP_SUBTRACT: {
-        Value b = pop();
-        Value a = pop();
-        push(a - b);
+        BINARY_OP(-);
+        break;
+      }
+      case OP_MULTIPLY: {
+        BINARY_OP(*);
+        break;
+      }
+      case OP_DIVIDE: {
+        BINARY_OP(/);
         break;
       }
       case OP_CONSTANT: {
@@ -64,6 +71,7 @@ static InterpretResult run() {
     }
   }
 
+#undef BINARY_OP
 #undef READ_CONSTANT
 #undef READ_BYTE
 }

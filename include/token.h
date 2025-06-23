@@ -4,6 +4,8 @@
 typedef enum tok_type {
   TOK_PLUS,
   TOK_MINUS,
+  TOK_STAR,
+  TOK_SLASH,
 
   TOK_NUMBER,
 

@@ -5,8 +5,29 @@
 
 #include "minunit.h"
 
+// Asserts the expected bytecode array with the chunk's bytecode
+static void assertBytecode(Chunk *chunk, uint8_t bytecode[], int n) {
+  ASSERT_EQ_INT(n, chunk->count);
+
+  for (int i = 0; i < n; i++) {
+    ASSERT_EQ_INT(bytecode[i], chunk->code[i]);
+  }
+}
+
+static void assertConstants(Chunk *chunk, Value constants[], int n) {
+  ASSERT_EQ_INT(n, chunk->constants.count);
+
+  for (int i = 0; i < n; i++) {
+    ASSERT_EQ_INT(constants[i], chunk->constants.values[i]);
+  }
+}
+
 MU_TEST_SUITE(test_compile_termExpression) {
   const char *source = "1 + 2 - 3";
+
+  uint8_t expectedBytecode[] = {OP_CONSTANT, 0, OP_CONSTANT, 1,        OP_ADD,
+                                OP_CONSTANT, 2, OP_SUBTRACT, OP_RETURN};
+  Value expectedConstants[]  = {1, 2, 3};
 
   Chunk chunk;
   initChunk(&chunk);
@@ -14,25 +35,33 @@ MU_TEST_SUITE(test_compile_termExpression) {
   bool success = compile(source, &chunk);
 
   ASSERT_EQ_INT(true, success);
-  ASSERT_EQ_INT(9, chunk.count);
-  ASSERT_EQ_INT(3, chunk.constants.count);
+  assertBytecode(&chunk, expectedBytecode, sizeof(expectedBytecode));
+  assertConstants(&chunk, expectedConstants, 3);
 
-  ASSERT_EQ_INT(OP_CONSTANT, chunk.code[0]);
-  ASSERT_EQ_INT(1, chunk.constants.values[chunk.code[1]]);
+  freeChunk(&chunk);
+}
 
-  ASSERT_EQ_INT(OP_CONSTANT, chunk.code[2]);
-  ASSERT_EQ_INT(2, chunk.constants.values[chunk.code[3]]);
+MU_TEST_SUITE(test_compile_mixedPrecedence) {
+  const char *source = "1 + 2 * 3";
 
-  ASSERT_EQ_INT(OP_ADD, chunk.code[4]);
+  uint8_t expectedBytecode[] = {OP_CONSTANT, 0,           OP_CONSTANT,
+                                1,           OP_CONSTANT, 2,
+                                OP_MULTIPLY, OP_ADD,      OP_RETURN};
+  Value expectedConstants[]  = {1, 2, 3};
 
-  ASSERT_EQ_INT(OP_CONSTANT, chunk.code[5]);
-  ASSERT_EQ_INT(3, chunk.constants.values[chunk.code[6]]);
+  Chunk chunk;
+  initChunk(&chunk);
 
-  ASSERT_EQ_INT(OP_SUBTRACT, chunk.code[7]);
+  bool success = compile(source, &chunk);
 
-  ASSERT_EQ_INT(OP_RETURN, chunk.code[8]);
+  ASSERT_EQ_INT(true, success);
+  assertBytecode(&chunk, expectedBytecode, sizeof(expectedBytecode));
+  assertConstants(&chunk, expectedConstants, 3);
+
+  freeChunk(&chunk);
 }
 
 MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_termExpression);
+  MU_RUN_TEST(test_compile_mixedPrecedence);
 }

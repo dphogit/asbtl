@@ -115,6 +115,8 @@ Token scanNext(Scanner *scanner) {
   switch (c) {
     case '+': return token(scanner, TOK_PLUS);
     case '-': return token(scanner, TOK_MINUS);
+    case '*': return token(scanner, TOK_STAR);
+    case '/': return token(scanner, TOK_SLASH);
   }
 
   return error(scanner, "unexpected character");

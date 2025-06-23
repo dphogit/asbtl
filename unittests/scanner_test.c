@@ -27,18 +27,25 @@ MU_TEST(test_scanNext_number) {
 }
 
 MU_TEST(test_scanNext_operators) {
+#define ASSERT_OP(tok, expStart, expLen, expType) \
+  ASSERT_EQ_INT(expStart, *tok.start);            \
+  ASSERT_EQ_INT(expLen, tok.len);                 \
+  ASSERT_EQ_INT(expType, tok.type);
+
   Scanner scanner;
-  initScanner(&scanner, "+ -");
+  initScanner(&scanner, "+ - * /");
 
   Token tok = scanNext(&scanner);
-  ASSERT_EQ_INT('+', *tok.start);
-  ASSERT_EQ_INT(1, tok.len);
-  ASSERT_EQ_INT(TOK_PLUS, tok.type);
+  ASSERT_OP(tok, '+', 1, TOK_PLUS);
 
   tok = scanNext(&scanner);
-  ASSERT_EQ_INT('-', *tok.start);
-  ASSERT_EQ_INT(1, tok.len);
-  ASSERT_EQ_INT(TOK_MINUS, tok.type);
+  ASSERT_OP(tok, '-', 1, TOK_MINUS);
+
+  tok = scanNext(&scanner);
+  ASSERT_OP(tok, '*', 1, TOK_STAR);
+
+  tok = scanNext(&scanner);
+  ASSERT_OP(tok, '/', 1, TOK_SLASH);
 }
 
 MU_TEST_SUITE(scanner_tests) {

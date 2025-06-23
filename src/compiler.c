@@ -116,20 +116,39 @@ static void emitReturn() {
   emitByte(OP_RETURN);
 }
 
-static void number() {
-  double value = strtod(parser.prev.start, NULL);
-  emitConstant(value);
+static void primary() {
+  if (match(TOK_NUMBER)) {
+    double value = strtod(parser.prev.start, NULL);
+    emitConstant(value);
+    return;
+  }
+
+  errorCur("expect expression");
+}
+
+static void factor() {
+  primary();
+
+  while (match(TOK_STAR) || match(TOK_SLASH)) {
+    TokType type = parser.prev.type;
+
+    primary();
+
+    switch (type) {
+      case TOK_STAR:  emitByte(OP_MULTIPLY); break;
+      case TOK_SLASH: emitByte(OP_DIVIDE); break;
+      default:        break;
+    }
+  }
 }
 
 static void expression() {
-  advance();
-  number();
+  factor();
 
   while (match(TOK_PLUS) || match(TOK_MINUS)) {
     TokType type = parser.prev.type;
 
-    advance();
-    number();
+    factor();
 
     switch (type) {
       case TOK_PLUS:  emitByte(OP_ADD); break;

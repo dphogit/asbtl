@@ -19,6 +19,8 @@ typedef struct parser {
 
 Parser parser;
 
+static void expression();
+
 static Chunk *currentChunk() {
   return parser.chunk;
 }
@@ -116,10 +118,24 @@ static void emitReturn() {
   emitByte(OP_RETURN);
 }
 
+static void number() {
+  double value = strtod(parser.prev.start, NULL);
+  emitConstant(value);
+}
+
+static void grouping() {
+  expression();
+  consume(TOK_RIGHT_PAREN, "expect closing ')' after expression");
+}
+
 static void primary() {
   if (match(TOK_NUMBER)) {
-    double value = strtod(parser.prev.start, NULL);
-    emitConstant(value);
+    number();
+    return;
+  }
+
+  if (match(TOK_LEFT_PAREN)) {
+    grouping();
     return;
   }
 

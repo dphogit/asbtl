@@ -117,6 +117,8 @@ Token scanNext(Scanner *scanner) {
     case '-': return token(scanner, TOK_MINUS);
     case '*': return token(scanner, TOK_STAR);
     case '/': return token(scanner, TOK_SLASH);
+    case '(': return token(scanner, TOK_LEFT_PAREN);
+    case ')': return token(scanner, TOK_RIGHT_PAREN);
   }
 
   return error(scanner, "unexpected character");

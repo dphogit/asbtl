@@ -19,7 +19,8 @@ expression: factor ( ('+' | '-') factor )* ;
 
 factor    : primary ( ('*' | '/') primary)* ;
 
-primary   : NUMBER ;
+primary   : NUMBER
+          | '(' expression ')' ;
 ```
 
 ### Lexical Grammar

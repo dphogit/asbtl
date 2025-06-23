@@ -6,6 +6,8 @@ typedef enum tok_type {
   TOK_MINUS,
   TOK_STAR,
   TOK_SLASH,
+  TOK_LEFT_PAREN,
+  TOK_RIGHT_PAREN,
 
   TOK_NUMBER,
 

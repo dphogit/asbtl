@@ -23,12 +23,13 @@ MU_TEST(test_initValueList) {
 MU_TEST(test_appendValueList) {
   ValueList list;
   initValueList(&list);
+  Value value = NUM_VAL(0.5);
 
-  appendValueList(&list, 0.5);
+  appendValueList(&list, value);
 
   ASSERT_EQ_INT(1, list.count);
   ASSERT_GE(list.capacity, 1, ""); // Assert capacity grew from reallocation
-  ASSERT_EQ_INT(true, valuesEq(list.values[0], 0.5));
+  ASSERT_EQ_INT(true, valuesEq(list.values[0], value));
 
   freeValueList(&list);
 }
@@ -43,12 +44,27 @@ MU_TEST(test_freeValueList) {
 }
 
 MU_TEST(test_valuesEq_double) {
-  Value a = 0.5, b = 0.5;
+  Value a = NUM_VAL(0.5), b = NUM_VAL(0.5);
   ASSERT_EQ_INT(true, valuesEq(a, b));
 }
 
 MU_TEST(test_valuesEq_doubleNotEq) {
-  Value a = 0.4, b = 0.5;
+  Value a = NUM_VAL(0.4), b = NUM_VAL(0.5);
+  ASSERT_EQ_INT(false, valuesEq(a, b));
+}
+
+MU_TEST(test_valuesEq_bool) {
+  Value a = BOOL_VAL(true), b = BOOL_VAL(true);
+  ASSERT_EQ_INT(true, valuesEq(a, b));
+}
+
+MU_TEST(test_valuesEq_boolNotEq) {
+  Value a = BOOL_VAL(true), b = BOOL_VAL(false);
+  ASSERT_EQ_INT(false, valuesEq(a, b));
+}
+
+MU_TEST(test_valuesEq_differentType) {
+  Value a = BOOL_VAL(true), b = NUM_VAL(1);
   ASSERT_EQ_INT(false, valuesEq(a, b));
 }
 
@@ -59,4 +75,7 @@ MU_TEST_SUITE(value_tests) {
 
   MU_RUN_TEST(test_valuesEq_double);
   MU_RUN_TEST(test_valuesEq_doubleNotEq);
+  MU_RUN_TEST(test_valuesEq_bool);
+  MU_RUN_TEST(test_valuesEq_boolNotEq);
+  MU_RUN_TEST(test_valuesEq_differentType);
 }

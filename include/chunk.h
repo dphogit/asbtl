@@ -10,6 +10,8 @@ typedef enum op_code {
   OP_SUBTRACT,
   OP_MULTIPLY,
   OP_DIVIDE,
+  OP_FALSE,
+  OP_TRUE,
   OP_CONSTANT,
   OP_RETURN,
 } OpCode;
@@ -22,11 +24,12 @@ typedef struct chunk {
   unsigned int capacity;
   unsigned int count;
   uint8_t *code;       // Bytecode array
+  int *lines;          // Corresponding line numbers of the bytecode
   ValueList constants; // Constants pool (values list)
 } Chunk;
 
 void initChunk(Chunk *chunk);
-void appendChunk(Chunk *chunk, uint8_t byte);
+void appendChunk(Chunk *chunk, uint8_t byte, int line);
 void freeChunk(Chunk *chunk);
 
 // Appends to the constant pool, returning the array index it was written to.

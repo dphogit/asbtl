@@ -20,6 +20,7 @@ expression: factor ( ('+' | '-') factor )* ;
 factor    : primary ( ('*' | '/') primary)* ;
 
 primary   : NUMBER
+          | BOOLEAN
           | '(' expression ')' ;
 ```
 
@@ -28,8 +29,11 @@ primary   : NUMBER
 Used by the scanner to obtain the tokens from the initial input.
 
 ```text
-NUMBER: DIGIT+ ('.' DIGIT+)? ;
-DIGIT : '0' ... '9'
+NUMBER    : DIGIT+ ('.' DIGIT+)? ;
+IDENTIFIER: ALPHA (ALPHA | DIGIT)* ;
+BOOLEAN   : 'true' | 'false' ;
+ALPHA     : 'a' ... 'z' | 'A' ... 'Z' | '_' ;
+DIGIT     : '0' ... '9' ;
 ```
 
 ## Contributing

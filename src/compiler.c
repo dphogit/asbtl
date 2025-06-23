@@ -94,7 +94,7 @@ static bool match(TokType type) {
 }
 
 static void emitByte(uint8_t byte) {
-  appendChunk(currentChunk(), byte);
+  appendChunk(currentChunk(), byte, parser.prev.line);
 }
 
 static void emitBytes(uint8_t byte1, uint8_t byte2) {
@@ -120,7 +120,7 @@ static void emitReturn() {
 
 static void number() {
   double value = strtod(parser.prev.start, NULL);
-  emitConstant(value);
+  emitConstant(NUM_VAL(value));
 }
 
 static void grouping() {
@@ -136,6 +136,16 @@ static void primary() {
 
   if (match(TOK_LEFT_PAREN)) {
     grouping();
+    return;
+  }
+
+  if (match(TOK_FALSE)) {
+    emitByte(OP_FALSE);
+    return;
+  }
+
+  if (match(TOK_TRUE)) {
+    emitByte(OP_TRUE);
     return;
   }
 

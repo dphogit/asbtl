@@ -23,7 +23,7 @@ MU_TEST(test_scanNext) {
   ASSERT_EQ_INT(expType, tok.type);
 
   Scanner scanner;
-  initScanner(&scanner, "+ - * / ( ) 123");
+  initScanner(&scanner, "+ - * / ( ) 123 false true");
 
   Token tok = scanNext(&scanner);
   ASSERT_TOK(tok, "+", 1, TOK_PLUS);
@@ -45,6 +45,13 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "123", 3, TOK_NUMBER);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "false", 5, TOK_FALSE);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "true", 4, TOK_TRUE);
+
 #undef ASSERT_TOK
 }
 

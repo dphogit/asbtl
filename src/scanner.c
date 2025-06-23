@@ -24,6 +24,10 @@ static char peekNext(Scanner *scanner) {
   return isAtEnd(scanner) ? '\0' : scanner->cur[1];
 }
 
+static bool isAlpha(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
 static Token token(Scanner *scanner, TokType type) {
   Token tok;
   tok.type  = type;
@@ -93,6 +97,31 @@ static void skipWhitespace(Scanner *scanner) {
 #undef CONSUME_INLINE_COMMENT
 }
 
+static TokType checkKeyword(Scanner *scanner, int start, int len,
+                            const char *rest, TokType type) {
+  bool sameLen      = scanner->cur - scanner->start == start + len;
+  bool sameContents = strncmp(scanner->start + start, rest, len) == 0;
+  return sameLen && sameContents ? type : TOK_IDENTIFIER;
+}
+
+static TokType identifierType(Scanner *scanner) {
+  switch (scanner->start[0]) {
+    case 'f': return checkKeyword(scanner, 1, 4, "alse", TOK_FALSE);
+    case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
+    default:  return TOK_IDENTIFIER;
+  }
+}
+
+static Token identifier(Scanner *scanner) {
+  char c = peek(scanner);
+  while (isAlpha(c) || isdigit(c)) {
+    advance(scanner);
+    c = peek(scanner);
+  }
+
+  return token(scanner, identifierType(scanner));
+}
+
 void initScanner(Scanner *scanner, const char *source) {
   scanner->start = source;
   scanner->cur   = source;
@@ -111,6 +140,10 @@ Token scanNext(Scanner *scanner) {
 
   if (isdigit(c))
     return number(scanner);
+
+  if (isAlpha(c)) {
+    return identifier(scanner);
+  }
 
   switch (c) {
     case '+': return token(scanner, TOK_PLUS);

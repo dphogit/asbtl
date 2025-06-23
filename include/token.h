@@ -10,6 +10,9 @@ typedef enum tok_type {
   TOK_RIGHT_PAREN,
 
   TOK_NUMBER,
+  TOK_IDENTIFIER,
+  TOK_TRUE,
+  TOK_FALSE,
 
   TOK_ERR,
   TOK_EOF,

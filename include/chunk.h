@@ -15,6 +15,12 @@ typedef enum op_code {
   OP_NOT,
   OP_NEGATE,
   OP_NIL,
+  OP_EQ,
+  OP_NOT_EQ,
+  OP_LESS,
+  OP_LESS_EQ,
+  OP_GREATER_EQ,
+  OP_GREATER,
   OP_CONSTANT,
   OP_RETURN,
 } OpCode;

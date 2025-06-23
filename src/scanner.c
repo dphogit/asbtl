@@ -24,6 +24,16 @@ static char peekNext(Scanner *scanner) {
   return isAtEnd(scanner) ? '\0' : scanner->cur[1];
 }
 
+// Conditionally advance the scanner if current char matches the given
+static bool match(Scanner *scanner, char c) {
+  if (*scanner->cur == c) {
+    advance(scanner);
+    return true;
+  }
+
+  return false;
+}
+
 static bool isAlpha(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
@@ -154,7 +164,13 @@ Token scanNext(Scanner *scanner) {
     case '/': return token(scanner, TOK_SLASH);
     case '(': return token(scanner, TOK_LEFT_PAREN);
     case ')': return token(scanner, TOK_RIGHT_PAREN);
-    case '!': return token(scanner, TOK_BANG);
+    case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);
+    case '!':
+      return token(scanner, match(scanner, '=') ? TOK_BANG_EQ : TOK_BANG);
+    case '<':
+      return token(scanner, match(scanner, '=') ? TOK_LESS_EQ : TOK_LESS);
+    case '>':
+      return token(scanner, match(scanner, '=') ? TOK_GREATER_EQ : TOK_GREATER);
   }
 
   return error(scanner, "unexpected character");

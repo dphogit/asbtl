@@ -190,7 +190,7 @@ static void factor() {
   }
 }
 
-static void expression() {
+static void term() {
   factor();
 
   while (match(TOK_PLUS) || match(TOK_MINUS)) {
@@ -204,6 +204,45 @@ static void expression() {
       default:        break;
     }
   }
+}
+
+static void comparison() {
+  term();
+
+  while (match(TOK_LESS) || match(TOK_LESS_EQ) || match(TOK_GREATER) ||
+         match(TOK_GREATER_EQ)) {
+    TokType type = parser.prev.type;
+
+    term();
+
+    switch (type) {
+      case TOK_LESS:       emitByte(OP_LESS); break;
+      case TOK_LESS_EQ:    emitByte(OP_LESS_EQ); break;
+      case TOK_GREATER_EQ: emitByte(OP_GREATER_EQ); break;
+      case TOK_GREATER:    emitByte(OP_GREATER); break;
+      default:             break;
+    }
+  }
+}
+
+static void equality() {
+  comparison();
+
+  while (match(TOK_EQ_EQ) || match(TOK_BANG_EQ)) {
+    TokType type = parser.prev.type;
+
+    comparison();
+
+    switch (type) {
+      case TOK_EQ_EQ:   emitByte(OP_EQ); break;
+      case TOK_BANG_EQ: emitByte(OP_NOT_EQ); break;
+      default:          break;
+    }
+  }
+}
+
+static void expression() {
+  equality();
 }
 
 bool compile(const char *source, Chunk *chunk) {

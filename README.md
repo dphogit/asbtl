@@ -15,7 +15,13 @@ Used for parsing the sequence of scanned tokens during bytecode compilation.
 ```text
 program   : expression ;
 
-expression: factor ( ('+' | '-') factor )* ;
+expression: equality ;
+
+equality  : comparison ( ( '==' | '!= ') comparison)* ;
+
+comparison: term ( ('<' | '<=' | '>' | '>=') term)* ;
+
+term      : factor ( ('+' | '-') factor )* ;
 
 factor    : unary ( ('*' | '/') unary )* ;
 

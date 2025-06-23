@@ -84,3 +84,99 @@ teardown() {
   assert_failure
   assert_output -p "negation operand must be a number"
 }
+
+@test "less than a < b returns true" {
+  _run_asbtl "1 < 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "less than a == b returns false" {
+  _run_asbtl "2 < 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "less than a > b returns false" {
+  _run_asbtl "3 < 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "less than equal a < b returns true" {
+  _run_asbtl "1 <= 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "less than equal a == b returns true" {
+  _run_asbtl "2 <= 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "less than equal a > b returns false" {
+  _run_asbtl "3 <= 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "greater than equal a < b returns false" {
+  _run_asbtl "1 >= 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "greater than equal a == b returns true" {
+  _run_asbtl "2 >= 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "greater than equal a > b returns true" {
+  _run_asbtl "3 >= 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "greater than a < b returns false" {
+  _run_asbtl "1 > 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "greater than a == b returns false" {
+  _run_asbtl "2 > 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "greater than a > b returns true" {
+  _run_asbtl "3 > 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "equal a == b returns true" {
+  _run_asbtl "2 == 2"
+  assert_success
+  assert_output "true"
+}
+
+@test "equal a != b returns false" {
+  _run_asbtl "2 == 3"
+  assert_success
+  assert_output "false"
+}
+
+@test "not equal a == b returns false" {
+  _run_asbtl "2 != 2"
+  assert_success
+  assert_output "false"
+}
+
+@test "not equal a != b returns true" {
+  _run_asbtl "2 != 3"
+  assert_success
+  assert_output "true"
+}

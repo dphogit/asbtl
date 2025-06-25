@@ -1,6 +1,7 @@
 #include "compiler.h"
 
 #include "chunk.h"
+#include "object.h"
 #include "scanner.h"
 #include "token.h"
 
@@ -60,7 +61,7 @@ static void advance() {
     parser.cur = scanNext(parser.scanner);
 
     if (parser.cur.type == TOK_ERR) {
-      errorPrev(parser.cur.start);
+      errorCur(parser.cur.start);
       continue;
     }
 
@@ -152,6 +153,15 @@ static void number() {
   emitConstant(NUM_VAL(value));
 }
 
+static void string() {
+  // Trim surrounding quotes
+  const char *chars = parser.prev.start + 1;
+  int n             = parser.prev.len - 2;
+
+  ObjString *str = copyString(chars, n);
+  emitConstant(OBJ_VAL(str));
+}
+
 static void grouping() {
   expression();
   consume(TOK_RIGHT_PAREN, "expect closing ')' after expression");
@@ -160,6 +170,11 @@ static void grouping() {
 static void primary() {
   if (match(TOK_NUMBER)) {
     number();
+    return;
+  }
+
+  if (match(TOK_STRING)) {
+    string();
     return;
   }
 

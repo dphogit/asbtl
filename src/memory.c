@@ -1,4 +1,6 @@
 #include "memory.h"
+#include "object.h"
+#include "vm.h"
 
 #include <stdlib.h>
 
@@ -14,4 +16,27 @@ void *reallocate(void *ptr, size_t newSize, size_t oldSize) {
     exit(EXIT_FAILURE);
 
   return result;
+}
+
+static void freeObj(Obj *obj) {
+  switch (obj->type) {
+    case OBJ_STRING: {
+      ObjString *str = (ObjString *)obj;
+      FREE_ARRAY(char, str->chars, str->len + 1); // + 1 for null byte
+      FREE(ObjString, str);
+      break;
+    }
+  }
+}
+
+void freeObjs() {
+  Obj *cur = vm.objs;
+
+  while (cur != NULL) {
+    Obj *next = cur->next;
+    freeObj(cur);
+    cur = next;
+  }
+
+  vm.objs = NULL;
 }

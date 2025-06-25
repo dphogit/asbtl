@@ -39,6 +39,7 @@ factor    : unary ( ( '*' | '/' ) unary )* ;
 unary     : (( '-' | '!' ) unary ) | primary ;
 
 primary   : NUMBER
+          | STRING
           | 'false' | 'true' | 'nil'
           | IDENTIFIER
           | '(' expression ')' ;
@@ -50,6 +51,7 @@ Used by the scanner to obtain the tokens from the initial input.
 
 ```ebnf
 NUMBER    : DIGIT+ ('.' DIGIT+)? ;
+STRING    : '"' [any character except '"'] '"' ;
 IDENTIFIER: ALPHA (ALPHA | DIGIT)* ;
 ALPHA     : 'a' ... 'z' | 'A' ... 'Z' | '_' ;
 DIGIT     : '0' ... '9' ;

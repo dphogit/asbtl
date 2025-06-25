@@ -2,9 +2,12 @@
 
 #include "chunk.h"
 #include "compiler.h"
+#include "memory.h"
+#include "object.h"
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 VM vm;
 
@@ -47,10 +50,11 @@ static void runtimeError(const char *format, ...) {
 
 void initVM() {
   resetStack();
+  vm.objs = NULL;
 }
 
 void freeVM() {
-  // The objects the VM refers to will be freed here
+  freeObjs();
 }
 
 static InterpretResult run() {
@@ -71,7 +75,22 @@ static InterpretResult run() {
     OpCode opCode = READ_BYTE();
 
     switch (opCode) {
-      case OP_ADD:      BINARY_OP(NUM_VAL, +); continue;
+      case OP_ADD: {
+        if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+          ObjString *b = AS_STRING(pop()), *a = AS_STRING(pop());
+          push(OBJ_VAL(concatenate(a, b)));
+          continue;
+        }
+
+        if (IS_NUM(peek(0)) && IS_NUM(peek(1))) {
+          double b = AS_NUM(pop()), a = AS_NUM(pop());
+          push(NUM_VAL(a + b));
+          continue;
+        }
+
+        runtimeError("operands must both be strings or both be numbers");
+        return INTERPRET_RUNTIME_ERR;
+      }
       case OP_SUBTRACT: BINARY_OP(NUM_VAL, -); continue;
       case OP_MULTIPLY: BINARY_OP(NUM_VAL, *); continue;
       case OP_DIVIDE:   BINARY_OP(NUM_VAL, /); continue;

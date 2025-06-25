@@ -3,7 +3,9 @@
 
 void chunk_tests();
 void compiler_tests();
+void object_tests();
 void scanner_tests();
 void value_tests();
+void vm_tests();
 
 #endif

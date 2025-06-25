@@ -13,6 +13,7 @@ typedef struct vm {
   Value *stackTop;
   Chunk *chunk;
   uint8_t *ip; // Points to next bytecode instruction to execute
+  Obj *objs;   // Intrusive linked list of runtime allocated objects
 } VM;
 
 extern VM vm;

@@ -50,11 +50,11 @@ unittests: $(UNITTEST_TARGET)
 
 # Build the unit tests binary with the non-main src and unit test objects
 $(UNITTEST_TARGET): $(UNITTEST_OBJS) $(OBJS_NO_MAIN) | $(BUILD_DIR)
-	$(CC) -I$(INCLUDE_DIR) -o $@ $^
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -o $@ $^
 
 # Compile unittest .c files to .o files
 $(OBJ_UNITTEST_DIR)/%.o: $(UNITTEST_DIR)/%.c | $(OBJ_UNITTEST_DIR)
-	$(CC) -I$(INCLUDE_DIR) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
 tests: $(TARGET)
 	./tests/bats/bin/bats -r ./tests/suite/

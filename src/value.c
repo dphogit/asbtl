@@ -1,8 +1,9 @@
 #include "value.h"
 #include "memory.h"
+#include "object.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 void initValueList(ValueList *list) {
   list->capacity = 0;
@@ -31,6 +32,7 @@ void printValue(Value value) {
     case VAL_NIL:  printf("nil"); break;
     case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
     case VAL_NUM:  printf("%g", AS_NUM(value)); break;
+    case VAL_OBJ:  printObj(value); break;
   }
 }
 
@@ -42,6 +44,12 @@ bool valuesEq(Value a, Value b) {
     case VAL_NIL:  return false;
     case VAL_BOOL: return AS_BOOL(a) == AS_BOOL(b);
     case VAL_NUM:  return AS_NUM(a) == AS_NUM(b);
+    case VAL_OBJ:  {
+      // TODO: String interning
+      ObjString *aStr = AS_STRING(a), *bStr = AS_STRING(b);
+      return aStr->len == bStr->len &&
+             strncmp(aStr->chars, bStr->chars, aStr->len) == 0;
+    }
   }
 
   return false;

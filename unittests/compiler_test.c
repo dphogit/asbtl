@@ -1,9 +1,11 @@
 #include "compiler.h"
 
 #include "chunk.h"
+#include "object.h"
 #include "test_runners.h"
 
 #include "minunit.h"
+#include "vm.h"
 
 #define ASSERT_BYTECODE(chunk, bytecode, n) \
   ASSERT_EQ_INT(n, chunk.count);            \
@@ -18,14 +20,16 @@
 Chunk chunk;
 
 void test_setup(void) {
+  initVM();
   initChunk(&chunk);
 }
 
 void test_teardown(void) {
   freeChunk(&chunk);
+  freeVM();
 }
 
-MU_TEST_SUITE(test_compile_termExpression) {
+MU_TEST(test_compile_termExpression) {
   const char *source = "1 + 2 - 3;";
 
   uint8_t expectedBytecode[] = {OP_CONSTANT, 0, OP_CONSTANT, 1,      OP_ADD,
@@ -44,7 +48,7 @@ MU_TEST_SUITE(test_compile_termExpression) {
   ASSERT_CONSTS(chunk, expectedConstants, 3);
 }
 
-MU_TEST_SUITE(test_compile_mixedPrecedence) {
+MU_TEST(test_compile_mixedPrecedence) {
   const char *source = "1 + 2 * 3;";
 
   uint8_t expectedBytecode[] = {OP_CONSTANT, 0,        OP_CONSTANT, 1,
@@ -64,7 +68,7 @@ MU_TEST_SUITE(test_compile_mixedPrecedence) {
   ASSERT_CONSTS(chunk, expectedConstants, 3);
 }
 
-MU_TEST_SUITE(test_compile_logicalAnd) {
+MU_TEST(test_compile_logicalAnd) {
   const char *source = "true && false;";
 
   uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,   0x02,
@@ -76,7 +80,7 @@ MU_TEST_SUITE(test_compile_logicalAnd) {
   ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
-MU_TEST_SUITE(test_compile_logicalOr) {
+MU_TEST(test_compile_logicalOr) {
   const char *source = "true || false;";
 
   uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_TRUE, 0x00,   0x02,
@@ -88,10 +92,27 @@ MU_TEST_SUITE(test_compile_logicalOr) {
   ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
+MU_TEST(test_compile_string) {
+  const char *source = "\"Hello, World!\";";
+
+  uint8_t bytecode[] = {OP_CONSTANT, 0x00, OP_POP, OP_RETURN};
+
+  Obj obj        = {OBJ_STRING, NULL};
+  ObjString str  = {obj, "Hello, World!", 13};
+  Value consts[] = {OBJ_VAL(&str)};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 4);
+  ASSERT_CONSTS(chunk, consts, 1);
+}
+
 MU_TEST_SUITE(compiler_tests) {
-  MU_SUITE_CONFIGURE(test_setup, test_teardown);
+  MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
   MU_RUN_TEST(test_compile_termExpression);
   MU_RUN_TEST(test_compile_mixedPrecedence);
   MU_RUN_TEST(test_compile_logicalAnd);
   MU_RUN_TEST(test_compile_logicalOr);
+  MU_RUN_TEST(test_compile_string);
 }

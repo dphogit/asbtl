@@ -23,8 +23,9 @@ MU_TEST(test_scanNext) {
   ASSERT_EQ_INT(expType, tok.type);
 
   Scanner scanner;
-  initScanner(&scanner,
-              "+ - * / ( ) ! ; = < <= == != >= > || && 123 false true nil");
+  initScanner(
+      &scanner,
+      "+ - * / ( ) ! ; = < <= == != >= > || && 123 false true nil \"string\"");
 
   Token tok = scanNext(&scanner);
   ASSERT_TOK(tok, "+", 1, TOK_PLUS);
@@ -88,6 +89,9 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "nil", 3, TOK_NIL);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "\"string\"", 8, TOK_STRING);
 
   tok = scanNext(&scanner);
   ASSERT_EQ_INT(TOK_EOF, tok.type);

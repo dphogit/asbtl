@@ -16,7 +16,7 @@ teardown() {
 @test "addition with non-number operand gives error" {
   _run_asbtl "print 1 + true;"
   assert_failure
-  assert_output -p 'operands must be numbers'
+  assert_output -p 'operands must both be strings or both be numbers'
 }
 
 @test "subtraction" {

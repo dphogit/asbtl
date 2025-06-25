@@ -1,6 +1,6 @@
-#include "test_runners.h"
-
 #include "minunit.h"
+#include "object.h"
+#include "test_runners.h"
 #include "value.h"
 
 #define ASSERT_VALUELIST_INIT(list)           \
@@ -68,6 +68,36 @@ MU_TEST(test_valuesEq_differentType) {
   ASSERT_EQ_INT(false, valuesEq(a, b));
 }
 
+MU_TEST(test_valuesEq_string) {
+  ObjString aStr = {
+      {OBJ_STRING, NULL},
+      "a", 1
+  };
+  ObjString bStr = {
+      {OBJ_STRING, NULL},
+      "a", 1
+  };
+
+  Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
+
+  ASSERT_EQ_INT(true, valuesEq(a, b));
+}
+
+MU_TEST(test_valuesEq_stringNotEq) {
+  ObjString aStr = {
+      {OBJ_STRING, NULL},
+      "a", 1
+  };
+  ObjString bStr = {
+      {OBJ_STRING, NULL},
+      "b", 1
+  };
+
+  Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
+
+  ASSERT_EQ_INT(false, valuesEq(a, b));
+}
+
 MU_TEST_SUITE(value_tests) {
   MU_RUN_TEST(test_initValueList);
   MU_RUN_TEST(test_appendValueList);
@@ -78,4 +108,6 @@ MU_TEST_SUITE(value_tests) {
   MU_RUN_TEST(test_valuesEq_bool);
   MU_RUN_TEST(test_valuesEq_boolNotEq);
   MU_RUN_TEST(test_valuesEq_differentType);
+  MU_RUN_TEST(test_valuesEq_string);
+  MU_RUN_TEST(test_valuesEq_stringNotEq);
 }

@@ -8,6 +8,7 @@ typedef enum tok_type {
   TOK_SLASH,
   TOK_LEFT_PAREN,
   TOK_RIGHT_PAREN,
+  TOK_STRING,
   TOK_BANG,
   TOK_BANG_EQ,
   TOK_LESS,

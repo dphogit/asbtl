@@ -135,6 +135,23 @@ static Token identifier(Scanner *scanner) {
   return token(scanner, identifierType(scanner));
 }
 
+static Token string(Scanner *scanner) {
+  while (peek(scanner) != '"' && !isAtEnd(scanner)) {
+    if (peek(scanner) == '\n') {
+      scanner->line++; // allow strings to span multiple lines
+    }
+
+    advance(scanner);
+  }
+
+  if (isAtEnd(scanner))
+    return error(scanner, "unterminated string");
+
+  advance(scanner); // consume closing '"'
+
+  return token(scanner, TOK_STRING);
+}
+
 void initScanner(Scanner *scanner, const char *source) {
   scanner->start = source;
   scanner->cur   = source;
@@ -166,6 +183,7 @@ Token scanNext(Scanner *scanner) {
     case '(': return token(scanner, TOK_LEFT_PAREN);
     case ';': return token(scanner, TOK_SEMICOLON);
     case ')': return token(scanner, TOK_RIGHT_PAREN);
+    case '"': return string(scanner);
     case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);
     case '!':
       return token(scanner, match(scanner, '=') ? TOK_BANG_EQ : TOK_BANG);

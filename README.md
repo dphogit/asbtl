@@ -15,17 +15,21 @@ Used for parsing the sequence of scanned tokens during bytecode compilation.
 ```text
 program   : expression ;
 
-expression: equality ;
+expression: or ;
 
-equality  : comparison ( ( '==' | '!= ') comparison)* ;
+or:       : and ( '||' and )* ;
 
-comparison: term ( ('<' | '<=' | '>' | '>=') term)* ;
+and:      : equality ( '&&' equality )* ;
+
+equality  : comparison ( ( '==' | '!=' ) comparison )* ;
+
+comparison: term ( ( '<' | '<=' | '>' | '>=' ) term )* ;
 
 term      : factor ( ('+' | '-') factor )* ;
 
-factor    : unary ( ('*' | '/') unary )* ;
+factor    : unary ( ( '*' | '/' ) unary )* ;
 
-unary     : ('-' | '!') unary | primary ;
+unary     : ( '-' | '!' ) unary | primary ;
 
 primary   : NUMBER
           | 'false' | 'true' | 'nil'
@@ -47,7 +51,7 @@ DIGIT     : '0' ... '9' ;
 
 ## Contributing
 
-To build, run `make`.
+To build, run `make`. Run the binary with `make run`.
 
 ### E2E Tests
 

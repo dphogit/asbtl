@@ -180,3 +180,51 @@ teardown() {
   assert_success
   assert_output "true"
 }
+
+@test "false or false returns false" {
+  _run_asbtl "false || false"
+  assert_success
+  assert_output "false"
+}
+
+@test "false or true returns true" {
+  _run_asbtl "false || true"
+  assert_success
+  assert_output "true"
+}
+
+@test "true or false returns true" {
+  _run_asbtl "true || false"
+  assert_success
+  assert_output "true"
+}
+
+@test "true or true returns true" {
+  _run_asbtl "true || true"
+  assert_success
+  assert_output "true"
+}
+
+@test "false and true returns false" {
+  _run_asbtl "false && true"
+  assert_success
+  assert_output "false"
+}
+
+@test "false and false returns false" {
+  _run_asbtl "false && false"
+  assert_success
+  assert_output "false"
+}
+
+@test "true and false returns false" {
+  _run_asbtl "true && false"
+  assert_success
+  assert_output "false"
+}
+
+@test "true and true returns true" {
+  _run_asbtl "true && true"
+  assert_success
+  assert_output "true"
+}

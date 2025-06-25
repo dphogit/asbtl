@@ -16,6 +16,8 @@ char *tokTypeStr(TokType type) {
     case TOK_LESS_EQ:     return "TOK_LESS_EQ";
     case TOK_GREATER:     return "TOK_GREATER";
     case TOK_GREATER_EQ:  return "TOK_GREATER_EQ";
+    case TOK_OR:          return "TOK_OR";
+    case TOK_AND:         return "TOK_AND";
     case TOK_NUMBER:      return "TOK_NUMBER";
     case TOK_IDENTIFIER:  return "TOK_IDENTIFIER";
     case TOK_TRUE:        return "TOK_TRUE";

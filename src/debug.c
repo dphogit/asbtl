@@ -14,6 +14,16 @@ static unsigned int constant(Chunk *chunk, unsigned int offset) {
   return offset + 2;
 }
 
+static unsigned int jump(Chunk *chunk, int sign, int offset) {
+  const char *name = opCodeStr(chunk->code[offset]);
+  uint16_t toJump  = (chunk->code[offset + 1] << 8) | chunk->code[offset + 2];
+
+  int dest = offset + 3 + sign * toJump;
+  printf("%-16s %4d -> %d\n", name, offset, dest);
+
+  return offset + 3;
+}
+
 static unsigned int single(Chunk *chunk, unsigned int offset) {
   printf("%s\n", opCodeStr(chunk->code[offset]));
   return offset + 1;
@@ -25,7 +35,9 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
 
   OpCode opCode = chunk->code[offset];
   switch (opCode) {
-    case OP_CONSTANT: return constant(chunk, offset);
+    case OP_CONSTANT:      return constant(chunk, offset);
+    case OP_JUMP_IF_TRUE:
+    case OP_JUMP_IF_FALSE: return jump(chunk, 1, offset);
     case OP_ADD:
     case OP_SUBTRACT:
     case OP_MULTIPLY:
@@ -34,7 +46,15 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_TRUE:
     case OP_NOT:
     case OP_NEGATE:
-    case OP_RETURN:   return single(chunk, offset);
+    case OP_NIL:
+    case OP_EQ:
+    case OP_NOT_EQ:
+    case OP_LESS:
+    case OP_LESS_EQ:
+    case OP_GREATER:
+    case OP_GREATER_EQ:
+    case OP_POP:
+    case OP_RETURN:        return single(chunk, offset);
   }
 
   printf("Unknown opcode %d\n", opCode);

@@ -16,6 +16,8 @@ typedef enum tok_type {
   TOK_EQ_EQ,
   TOK_GREATER,
   TOK_GREATER_EQ,
+  TOK_OR,
+  TOK_AND,
 
   TOK_NUMBER,
   TOK_IDENTIFIER,

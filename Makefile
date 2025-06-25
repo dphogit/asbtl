@@ -20,9 +20,12 @@ OBJS_NO_MAIN = $(filter-out $(OBJ_DIR)/main.o,$(OBJS))
 UNITTEST_SRCS = $(wildcard $(UNITTEST_DIR)/*.c)
 UNITTEST_OBJS = $(patsubst $(UNITTEST_DIR)/%.c,$(OBJ_UNITTEST_DIR)/%.o,$(UNITTEST_SRCS))
 
-.PHONY: all clean unittests tests
+.PHONY: all run clean unittests tests
 
 all: $(TARGET)
+
+run: $(TARGET)
+	$(TARGET)
 
 # Link final binary
 $(TARGET): $(OBJS) | $(BUILD_DIR)

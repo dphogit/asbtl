@@ -55,6 +55,7 @@ void freeVM() {
 
 static InterpretResult run() {
 #define READ_BYTE()     (*vm.ip++)
+#define READ_SHORT()    (vm.ip += 2, ((vm.ip[-2] << 8) | vm.ip[-1]))
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
 #define BINARY_OP(valueType, op)                 \
   do {                                           \
@@ -85,14 +86,35 @@ static InterpretResult run() {
         vm.stackTop[-1].as.number = -vm.stackTop[-1].as.number;
         continue;
       }
-      case OP_NIL:        push(NIL_VAL()); continue;
-      case OP_EQ:         BINARY_OP(BOOL_VAL, ==); continue;
-      case OP_NOT_EQ:     BINARY_OP(BOOL_VAL, !=); continue;
-      case OP_LESS:       BINARY_OP(BOOL_VAL, <); continue;
-      case OP_LESS_EQ:    BINARY_OP(BOOL_VAL, <=); continue;
-      case OP_GREATER:    BINARY_OP(BOOL_VAL, >); continue;
-      case OP_GREATER_EQ: BINARY_OP(BOOL_VAL, >=); continue;
-      case OP_CONSTANT:   push(READ_CONSTANT()); continue;
+      case OP_NIL: push(NIL_VAL()); continue;
+      case OP_EQ:  {
+        Value b = pop(), a = pop();
+        push(BOOL_VAL(valuesEq(a, b)));
+        continue;
+      }
+      case OP_NOT_EQ: {
+        Value b = pop(), a = pop();
+        push(BOOL_VAL(!valuesEq(a, b)));
+        continue;
+      }
+      case OP_LESS:          BINARY_OP(BOOL_VAL, <); continue;
+      case OP_LESS_EQ:       BINARY_OP(BOOL_VAL, <=); continue;
+      case OP_GREATER:       BINARY_OP(BOOL_VAL, >); continue;
+      case OP_GREATER_EQ:    BINARY_OP(BOOL_VAL, >=); continue;
+      case OP_CONSTANT:      push(READ_CONSTANT()); continue;
+      case OP_POP:           pop(); continue;
+      case OP_JUMP_IF_FALSE: {
+        uint16_t toJump = READ_SHORT();
+        if (isFalsy(peek(0)))
+          vm.ip += toJump;
+        continue;
+      }
+      case OP_JUMP_IF_TRUE: {
+        uint16_t toJump = READ_SHORT();
+        if (!(isFalsy(peek(0))))
+          vm.ip += toJump;
+        continue;
+      }
       case OP_RETURN:
         printValue(pop());
         printf("\n");

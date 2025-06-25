@@ -171,6 +171,14 @@ Token scanNext(Scanner *scanner) {
       return token(scanner, match(scanner, '=') ? TOK_LESS_EQ : TOK_LESS);
     case '>':
       return token(scanner, match(scanner, '=') ? TOK_GREATER_EQ : TOK_GREATER);
+    case '|':
+      return match(scanner, '|')
+                 ? token(scanner, TOK_OR)
+                 : error(scanner, "'|' not supported. Did you mean '||'?");
+    case '&':
+      return match(scanner, '&')
+                 ? token(scanner, TOK_AND)
+                 : error(scanner, "'&' not supported. Did you mean '&&'?");
   }
 
   return error(scanner, "unexpected character");

@@ -102,12 +102,43 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
   emitByte(byte2);
 }
 
+/*
+ * Emits the supplied jump instruction with a 2-byte placeholder operand. The
+ * operand should then be backpatched with patchJump(). Returns the offset of
+ * the operand's first byte (i.e. high byte).
+ */
+static int emitJump(OpCode jumpInstruction) {
+  emitByte(jumpInstruction);
+  emitByte(0xFF); // High byte
+  emitByte(0xFF); // Low byte
+  return currentChunk()->count - 2;
+}
+
+/*
+ * Given the offset of the first byte of the jump instruction's operand,
+ * backpatch the placeholder value with the correct number of bytes to jump.
+ * Calculated by taking the chunks current count - offset - 2.
+ */
+static void patchJump(int offset) {
+  Chunk *chunk    = currentChunk();
+  int bytesToJump = chunk->count - offset - 2;
+
+  // 2-byte operand => max value of 65535
+  if (bytesToJump > UINT16_MAX) {
+    errorPrev("exceeded max of 65535 bytes to jump over");
+  }
+
+  // Split and write the 2-byte (16-bit) operand into the respective bytes
+  chunk->code[offset]     = (bytesToJump >> 8) & 0xFF; // High byte
+  chunk->code[offset + 1] = bytesToJump & 0xFF;        // Low byte
+}
+
 static void emitConstant(Value constant) {
   unsigned int constantIndex = appendConstant(currentChunk(), constant);
 
-  // A byte can only refer to 256 different constant indexes.
   if (constantIndex > UINT8_MAX) {
-    parser.hadError = true;
+    // A byte can only refer to 256 different constant indexes.
+    errorPrev("exceeded max of 256 constants in one chunk");
     return;
   }
 
@@ -241,8 +272,30 @@ static void equality() {
   }
 }
 
-static void expression() {
+static void logicalAnd() {
   equality();
+
+  while (match(TOK_AND)) {
+    int operandOffset = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // if LHS falsy, pop removes it from stack
+    equality();
+    patchJump(operandOffset);
+  }
+}
+
+static void logicalOr() {
+  logicalAnd();
+
+  while (match(TOK_OR)) {
+    int operandOffset = emitJump(OP_JUMP_IF_TRUE);
+    emitByte(OP_POP); // if LHS falsy, pop removes it from stack
+    logicalAnd();
+    patchJump(operandOffset);
+  }
+}
+
+static void expression() {
+  logicalOr();
 }
 
 bool compile(const char *source, Chunk *chunk) {

@@ -22,6 +22,9 @@ typedef enum op_code {
   OP_GREATER_EQ,
   OP_GREATER,
   OP_CONSTANT,
+  OP_POP,
+  OP_JUMP_IF_FALSE,
+  OP_JUMP_IF_TRUE,
   OP_RETURN,
 } OpCode;
 

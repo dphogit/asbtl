@@ -26,10 +26,10 @@ void test_teardown(void) {
 }
 
 MU_TEST_SUITE(test_compile_termExpression) {
-  const char *source = "1 + 2 - 3";
+  const char *source = "1 + 2 - 3;";
 
-  uint8_t expectedBytecode[] = {OP_CONSTANT, 0, OP_CONSTANT, 1,        OP_ADD,
-                                OP_CONSTANT, 2, OP_SUBTRACT, OP_RETURN};
+  uint8_t expectedBytecode[] = {OP_CONSTANT, 0, OP_CONSTANT, 1,      OP_ADD,
+                                OP_CONSTANT, 2, OP_SUBTRACT, OP_POP, OP_RETURN};
 
   Value expectedConstants[] = {
       {VAL_NUM, {.number = 1}},
@@ -40,16 +40,16 @@ MU_TEST_SUITE(test_compile_termExpression) {
   bool success = compile(source, &chunk);
 
   ASSERT_EQ_INT(true, success);
-  ASSERT_BYTECODE(chunk, expectedBytecode, 9);
+  ASSERT_BYTECODE(chunk, expectedBytecode, 10);
   ASSERT_CONSTS(chunk, expectedConstants, 3);
 }
 
 MU_TEST_SUITE(test_compile_mixedPrecedence) {
-  const char *source = "1 + 2 * 3";
+  const char *source = "1 + 2 * 3;";
 
-  uint8_t expectedBytecode[] = {OP_CONSTANT, 0,           OP_CONSTANT,
-                                1,           OP_CONSTANT, 2,
-                                OP_MULTIPLY, OP_ADD,      OP_RETURN};
+  uint8_t expectedBytecode[] = {OP_CONSTANT, 0,        OP_CONSTANT, 1,
+                                OP_CONSTANT, 2,        OP_MULTIPLY, OP_ADD,
+                                OP_POP,      OP_RETURN};
 
   Value expectedConstants[] = {
       {VAL_NUM, {.number = 1}},
@@ -60,32 +60,32 @@ MU_TEST_SUITE(test_compile_mixedPrecedence) {
   bool success = compile(source, &chunk);
 
   ASSERT_EQ_INT(true, success);
-  ASSERT_BYTECODE(chunk, expectedBytecode, 9);
+  ASSERT_BYTECODE(chunk, expectedBytecode, 10);
   ASSERT_CONSTS(chunk, expectedConstants, 3);
 }
 
 MU_TEST_SUITE(test_compile_logicalAnd) {
-  const char *source = "true && false";
+  const char *source = "true && false;";
 
-  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,     0x02,
-                        OP_POP,  OP_FALSE,         OP_RETURN};
+  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,   0x02,
+                        OP_POP,  OP_FALSE,         OP_POP, OP_RETURN};
 
   bool success = compile(source, &chunk);
 
   ASSERT_EQ_INT(true, success);
-  ASSERT_BYTECODE(chunk, bytecode, 7);
+  ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
 MU_TEST_SUITE(test_compile_logicalOr) {
-  const char *source = "true || false";
+  const char *source = "true || false;";
 
-  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_TRUE, 0x00,     0x02,
-                        OP_POP,  OP_FALSE,        OP_RETURN};
+  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_TRUE, 0x00,   0x02,
+                        OP_POP,  OP_FALSE,        OP_POP, OP_RETURN};
 
   bool success = compile(source, &chunk);
 
   ASSERT_EQ_INT(true, success);
-  ASSERT_BYTECODE(chunk, bytecode, 7);
+  ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
 MU_TEST_SUITE(compiler_tests) {

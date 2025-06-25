@@ -119,6 +119,7 @@ static TokType identifierType(Scanner *scanner) {
   switch (scanner->start[0]) {
     case 'f': return checkKeyword(scanner, 1, 4, "alse", TOK_FALSE);
     case 'n': return checkKeyword(scanner, 1, 2, "il", TOK_NIL);
+    case 'p': return checkKeyword(scanner, 1, 4, "rint", TOK_PRINT);
     case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
     default:  return TOK_IDENTIFIER;
   }
@@ -163,6 +164,7 @@ Token scanNext(Scanner *scanner) {
     case '*': return token(scanner, TOK_STAR);
     case '/': return token(scanner, TOK_SLASH);
     case '(': return token(scanner, TOK_LEFT_PAREN);
+    case ';': return token(scanner, TOK_SEMICOLON);
     case ')': return token(scanner, TOK_RIGHT_PAREN);
     case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);
     case '!':

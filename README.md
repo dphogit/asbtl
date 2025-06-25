@@ -12,37 +12,43 @@ language from [Crafting Interpreters](https://craftinginterpreters.com/).
 
 Used for parsing the sequence of scanned tokens during bytecode compilation.
 
-```text
-program   : expression ;
+```ebnf
+program   : statement* EOF ;
+
+statement : printStmt
+          | exprStmt ;
+
+printStmt : 'print' expression ';' ;
+
+exprStmt  : expression ';' ;
 
 expression: or ;
 
-or:       : and ( '||' and )* ;
+or        : and ( '||' and )* ;
 
-and:      : equality ( '&&' equality )* ;
+and       : equality ( '&&' equality )* ;
 
 equality  : comparison ( ( '==' | '!=' ) comparison )* ;
 
 comparison: term ( ( '<' | '<=' | '>' | '>=' ) term )* ;
 
-term      : factor ( ('+' | '-') factor )* ;
+term      : factor ( ( '+' | '-' ) factor )* ;
 
 factor    : unary ( ( '*' | '/' ) unary )* ;
 
-unary     : ( '-' | '!' ) unary | primary ;
+unary     : (( '-' | '!' ) unary ) | primary ;
 
 primary   : NUMBER
           | 'false' | 'true' | 'nil'
           | IDENTIFIER
           | '(' expression ')' ;
-
 ```
 
 ### Lexical Grammar
 
 Used by the scanner to obtain the tokens from the initial input.
 
-```text
+```ebnf
 NUMBER    : DIGIT+ ('.' DIGIT+)? ;
 IDENTIFIER: ALPHA (ALPHA | DIGIT)* ;
 ALPHA     : 'a' ... 'z' | 'A' ... 'Z' | '_' ;

@@ -27,6 +27,7 @@ const char *opCodeStr(OpCode opCode) {
     case OP_POP:           return "OP_POP";
     case OP_JUMP_IF_FALSE: return "OP_JUMP_IF_FALSE";
     case OP_JUMP_IF_TRUE:  return "OP_JUMP_IF_TRUE";
+    case OP_PRINT:         return "OP_PRINT";
     case OP_RETURN:        return "OP_RETURN";
   }
   return "unknown opcode";

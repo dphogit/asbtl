@@ -115,10 +115,12 @@ static InterpretResult run() {
           vm.ip += toJump;
         continue;
       }
-      case OP_RETURN:
+      case OP_PRINT: {
         printValue(pop());
         printf("\n");
-        return INTERPRET_OK;
+        continue;
+      }
+      case OP_RETURN: return INTERPRET_OK;
     }
 
     fprintf(stderr, "unknown instruction");

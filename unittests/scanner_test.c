@@ -24,7 +24,7 @@ MU_TEST(test_scanNext) {
 
   Scanner scanner;
   initScanner(&scanner,
-              "+ - * / ( ) ! = < <= == != >= > || && 123 false true nil");
+              "+ - * / ( ) ! ; = < <= == != >= > || && 123 false true nil");
 
   Token tok = scanNext(&scanner);
   ASSERT_TOK(tok, "+", 1, TOK_PLUS);
@@ -46,6 +46,9 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "!", 1, TOK_BANG);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, ";", 1, TOK_SEMICOLON);
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "=", 1, TOK_EQ);

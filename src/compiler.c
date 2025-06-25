@@ -32,17 +32,15 @@ static void errorAt(Token *token, const char *message) {
 
   parser.panicMode = true;
 
-  fprintf(stderr, "[line %d, col %d] error ", token->line, token->col);
+  fprintf(stderr, "[line %d, col %d] error", token->line, token->col);
 
   switch (token->type) {
-    case TOK_EOF: fprintf(stderr, "at end"); break;
-    case TOK_ERR:
-      // Do nothing.
-      break;
-    default: fprintf(stderr, "at '%.*s'", token->len, token->start);
+    case TOK_EOF: fprintf(stderr, " at end"); break;
+    case TOK_ERR: break; // Nothing.
+    default:      fprintf(stderr, " at '%.*s'", token->len, token->start);
   }
 
-  fprintf(stderr, " %s\n", message);
+  fprintf(stderr, ": %s\n", message);
 
   parser.hadError = true;
 }
@@ -298,6 +296,31 @@ static void expression() {
   logicalOr();
 }
 
+static void printStmt() {
+  expression();
+  consume(TOK_SEMICOLON, "expect ';' at end");
+  emitByte(OP_PRINT);
+}
+
+static void exprStmt() {
+  expression();
+  consume(TOK_SEMICOLON, "expect ';' at end");
+  emitByte(OP_POP);
+}
+
+static void statement() {
+  if (match(TOK_PRINT)) {
+    printStmt();
+    return;
+  }
+
+  exprStmt();
+}
+
+static void endCompiler() {
+  emitReturn();
+}
+
 bool compile(const char *source, Chunk *chunk) {
   Scanner scanner;
   initScanner(&scanner, source);
@@ -308,9 +331,11 @@ bool compile(const char *source, Chunk *chunk) {
   parser.panicMode = false;
 
   advance();
-  expression();
-  consume(TOK_EOF, "expected end of expression");
-  emitReturn();
 
+  while (!match(TOK_EOF)) {
+    statement();
+  }
+
+  endCompiler();
   return !parser.hadError;
 }

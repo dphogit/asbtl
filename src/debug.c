@@ -54,6 +54,7 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_GREATER:
     case OP_GREATER_EQ:
     case OP_POP:
+    case OP_PRINT:
     case OP_RETURN:        return single(chunk, offset);
   }
 

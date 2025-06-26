@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define FNV_32_OFFSET_BASIS         2166136261u
+#define FNV_32_PRIME                16777619
+
 #define ALLOCATE_OBJ(type, objType) (type *)allocateObj(sizeof(type), objType)
 
 static Obj *allocateObj(size_t size, ObjType type) {
@@ -18,22 +21,46 @@ static Obj *allocateObj(size_t size, ObjType type) {
   return obj;
 }
 
-static ObjString *allocateString(char *chars, int n) {
+static ObjString *allocateObjString(char *chars, int n, uint32_t hash) {
   ObjString *str = ALLOCATE_OBJ(ObjString, OBJ_STRING);
   str->chars     = chars;
   str->len       = n;
+  str->hash      = hash;
   return str;
 }
 
+ObjString makeObjString(const char *chars, int n) {
+  Obj obj       = {OBJ_STRING, NULL};
+  ObjString str = {obj, chars, n, hashString(chars, n)};
+  return str;
+}
+
+// FNV-1a hash function:
+// https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
+uint32_t hashString(const char *key, int n) {
+  uint32_t hash = FNV_32_OFFSET_BASIS;
+
+  for (int i = 0; i < n; i++) {
+    hash ^= (uint8_t)key[i];
+    hash *= FNV_32_PRIME;
+  }
+
+  return hash;
+}
+
 ObjString *copyString(const char *chars, int n) {
+  uint32_t hash = hashString(chars, n);
+
   char *heapChars = ALLOCATE(char, n + 1);
   strncpy(heapChars, chars, n);
   heapChars[n] = '\0';
-  return allocateString(heapChars, n);
+
+  return allocateObjString(heapChars, n, hash);
 }
 
 ObjString *takeString(char *chars, int n) {
-  return allocateString(chars, n);
+  uint32_t hash = hashString(chars, n);
+  return allocateObjString(chars, n, hash);
 }
 
 ObjString *concatenate(ObjString *a, ObjString *b) {

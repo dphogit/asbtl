@@ -28,7 +28,7 @@ typedef struct value {
 #define IS_OBJ(value)  ((value.type) == VAL_OBJ)
 
 // Convert from primitive C type to `Value` type
-#define NIL_VAL(value)  ((Value){VAL_NIL, {.number = 0}})
+#define NIL_VAL         ((Value){VAL_NIL, {.number = 0}})
 #define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = value}})
 #define NUM_VAL(value)  ((Value){VAL_NUM, {.number = value}})
 #define OBJ_VAL(value)  ((Value){VAL_OBJ, {.obj = (Obj *)value}})

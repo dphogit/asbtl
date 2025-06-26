@@ -8,6 +8,7 @@ char *tokTypeStr(TokType type) {
     case TOK_SLASH:       return "TOK_SLASH";
     case TOK_LEFT_PAREN:  return "TOK_LEFT_PAREN";
     case TOK_RIGHT_PAREN: return "TOK_RIGHT_PAREN";
+    case TOK_STRING:      return "TOK_STRING";
     case TOK_BANG:        return "TOK_BANG";
     case TOK_BANG_EQ:     return "TOK_BANG_EQ";
     case TOK_EQ:          return "TOK_EQ";

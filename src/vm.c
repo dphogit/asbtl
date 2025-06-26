@@ -105,7 +105,7 @@ static InterpretResult run() {
         vm.stackTop[-1].as.number = -vm.stackTop[-1].as.number;
         continue;
       }
-      case OP_NIL: push(NIL_VAL()); continue;
+      case OP_NIL: push(NIL_VAL); continue;
       case OP_EQ:  {
         Value b = pop(), a = pop();
         push(BOOL_VAL(valuesEq(a, b)));

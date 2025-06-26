@@ -97,8 +97,7 @@ MU_TEST(test_compile_string) {
 
   uint8_t bytecode[] = {OP_CONSTANT, 0x00, OP_POP, OP_RETURN};
 
-  Obj obj        = {OBJ_STRING, NULL};
-  ObjString str  = {obj, "Hello, World!", 13};
+  ObjString str  = makeObjString("Hello, World!", 13);
   Value consts[] = {OBJ_VAL(&str)};
 
   bool success = compile(source, &chunk);

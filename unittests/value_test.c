@@ -69,14 +69,8 @@ MU_TEST(test_valuesEq_differentType) {
 }
 
 MU_TEST(test_valuesEq_string) {
-  ObjString aStr = {
-      {OBJ_STRING, NULL},
-      "a", 1
-  };
-  ObjString bStr = {
-      {OBJ_STRING, NULL},
-      "a", 1
-  };
+  ObjString aStr = makeObjString("a", 1);
+  ObjString bStr = makeObjString("a", 1);
 
   Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
 
@@ -84,14 +78,8 @@ MU_TEST(test_valuesEq_string) {
 }
 
 MU_TEST(test_valuesEq_stringNotEq) {
-  ObjString aStr = {
-      {OBJ_STRING, NULL},
-      "a", 1
-  };
-  ObjString bStr = {
-      {OBJ_STRING, NULL},
-      "b", 1
-  };
+  ObjString aStr = makeObjString("a", 1);
+  ObjString bStr = makeObjString("b", 1);
 
   Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
 

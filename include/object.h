@@ -3,6 +3,8 @@
 
 #include "value.h"
 
+#include <stdint.h>
+
 #define OBJ_TYPE(value)   AS_OBJ(value)->type
 
 #define IS_STRING(value)  isObjType(value, OBJ_STRING)
@@ -20,13 +22,18 @@ struct obj {
 
 typedef struct obj_string {
   Obj obj;
-  char *chars;
+  const char *chars;
   int len;
+  uint32_t hash;
 } ObjString;
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
+
+uint32_t hashString(const char *key, int n);
+
+ObjString makeObjString(const char *chars, int n);
 
 // Conservatively makes a new heap-allocation of the passed chars
 ObjString *copyString(const char *chars, int n);

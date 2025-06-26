@@ -22,7 +22,7 @@ static void freeObj(Obj *obj) {
   switch (obj->type) {
     case OBJ_STRING: {
       ObjString *str = (ObjString *)obj;
-      FREE_ARRAY(char, str->chars, str->len + 1); // + 1 for null byte
+      FREE_ARRAY(char, (char *)str->chars, str->len + 1); // + 1 for null byte
       FREE(ObjString, str);
       break;
     }

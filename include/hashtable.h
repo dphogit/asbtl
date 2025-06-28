@@ -37,4 +37,7 @@ bool hashTableGet(HashTable *ht, ObjString *key, Value *value);
 // Returns true if successful - there is an entry and it has been tombstoned.
 bool hashTableRemove(HashTable *ht, ObjString *key);
 
+ObjString *tableFindString(HashTable *ht, const char *key, int n,
+                           uint32_t hash);
+
 #endif

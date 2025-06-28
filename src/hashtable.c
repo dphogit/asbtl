@@ -1,5 +1,6 @@
 #include "hashtable.h"
 #include "memory.h"
+#include "object.h"
 #include "value.h"
 
 #include <stddef.h>
@@ -40,9 +41,8 @@ static HashTableEntry *findEntry(HashTableEntry *entries, ObjString *key,
       }
     }
 
-    // Key match - TODO: Replace with reference equality - string interning
-    else if (entry->key->len == key->len &&
-             strncmp(entry->key->chars, key->chars, key->len) == 0) {
+    // Key match - string interning ensures same strings as same memory address
+    else if (entry->key == key) {
       return entry;
     }
 
@@ -118,4 +118,31 @@ bool hashTableRemove(HashTable *ht, ObjString *key) {
 
   MAKE_TOMBSTONE(entry);
   return true;
+}
+
+ObjString *tableFindString(HashTable *ht, const char *key, int n,
+                           uint32_t hash) {
+  if (ht->count == 0) {
+    return NULL;
+  }
+
+  uint32_t index = hash % ht->capacity;
+
+  while (true) {
+    HashTableEntry *entry = &ht->entries[index];
+
+    // Stop search if we find a genuine empty entry (non-tombstone)
+    if (IS_EMPTY_ENTRY(entry)) {
+      return NULL;
+    }
+
+    // Skip tombstone, check len and hash then finally string comparison
+    // to check for textual equality to deduplicate strings in our VM.
+    if (entry->key != NULL && entry->key->len == n &&
+        entry->key->hash == hash && strncmp(entry->key->chars, key, n) == 0) {
+      return entry->key;
+    }
+
+    index = (index + 1) % ht->capacity; // open addressing probing strategy
+  }
 }

@@ -2,6 +2,7 @@
 #define ASBTL_VM_H
 
 #include "chunk.h"
+#include "hashtable.h"
 #include "value.h"
 
 #include <stdint.h>
@@ -12,8 +13,9 @@ typedef struct vm {
   Value stack[STACK_MAX];
   Value *stackTop;
   Chunk *chunk;
-  uint8_t *ip; // Points to next bytecode instruction to execute
-  Obj *objs;   // Intrusive linked list of runtime allocated objects
+  uint8_t *ip;       // Points to next bytecode instruction to execute
+  Obj *objs;         // Intrusive linked list of runtime allocated objects
+  HashTable strings; // String interning pool (hash set)
 } VM;
 
 extern VM vm;

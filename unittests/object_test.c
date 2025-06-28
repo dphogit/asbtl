@@ -56,6 +56,14 @@ MU_TEST(test_copyString) {
   ASSERT_EQ_INT(true, vm.objs->next == NULL);
 }
 
+MU_TEST(test_copyString_interns) {
+  ObjString *a = copyString("foo", 3);
+  ObjString *b = copyString("foo", 3);
+
+  ASSERT_EQ_INT(true, a == b);
+  ASSERT_EQ_INT(1, vm.strings.count);
+}
+
 MU_TEST(test_concatenate) {
   ObjString *a = copyString("foo", 3);
   ObjString *b = copyString("bar", 3);
@@ -74,5 +82,6 @@ MU_TEST_SUITE(object_tests) {
   MU_RUN_TEST(test_hashString_consistency);
   MU_RUN_TEST(test_hashString_difference);
   MU_RUN_TEST(test_copyString);
+  MU_RUN_TEST(test_copyString_interns);
   MU_RUN_TEST(test_concatenate);
 }

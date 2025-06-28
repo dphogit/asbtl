@@ -1,7 +1,6 @@
 #include "compiler.h"
 
 #include "chunk.h"
-#include "object.h"
 #include "test_runners.h"
 
 #include "minunit.h"
@@ -92,26 +91,10 @@ MU_TEST(test_compile_logicalOr) {
   ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
-MU_TEST(test_compile_string) {
-  const char *source = "\"Hello, World!\";";
-
-  uint8_t bytecode[] = {OP_CONSTANT, 0x00, OP_POP, OP_RETURN};
-
-  ObjString str  = makeObjString("Hello, World!", 13);
-  Value consts[] = {OBJ_VAL(&str)};
-
-  bool success = compile(source, &chunk);
-
-  ASSERT_EQ_INT(true, success);
-  ASSERT_BYTECODE(chunk, bytecode, 4);
-  ASSERT_CONSTS(chunk, consts, 1);
-}
-
 MU_TEST_SUITE(compiler_tests) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
   MU_RUN_TEST(test_compile_termExpression);
   MU_RUN_TEST(test_compile_mixedPrecedence);
   MU_RUN_TEST(test_compile_logicalAnd);
   MU_RUN_TEST(test_compile_logicalOr);
-  MU_RUN_TEST(test_compile_string);
 }

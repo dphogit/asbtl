@@ -44,12 +44,7 @@ bool valuesEq(Value a, Value b) {
     case VAL_NIL:  return false;
     case VAL_BOOL: return AS_BOOL(a) == AS_BOOL(b);
     case VAL_NUM:  return AS_NUM(a) == AS_NUM(b);
-    case VAL_OBJ:  {
-      // TODO: String interning
-      ObjString *aStr = AS_STRING(a), *bStr = AS_STRING(b);
-      return aStr->len == bStr->len &&
-             strncmp(aStr->chars, bStr->chars, aStr->len) == 0;
-    }
+    case VAL_OBJ:  return AS_OBJ(a) == AS_OBJ(b); // string interning
   }
 
   return false;

@@ -1,4 +1,5 @@
 #include "object.h"
+#include "hashtable.h"
 #include "memory.h"
 #include "vm.h"
 
@@ -26,6 +27,9 @@ static ObjString *allocateObjString(char *chars, int n, uint32_t hash) {
   str->chars     = chars;
   str->len       = n;
   str->hash      = hash;
+
+  hashTableSet(&vm.strings, str, NIL_VAL);
+
   return str;
 }
 
@@ -51,6 +55,11 @@ uint32_t hashString(const char *key, int n) {
 ObjString *copyString(const char *chars, int n) {
   uint32_t hash = hashString(chars, n);
 
+  ObjString *interned = tableFindString(&vm.strings, chars, n, hash);
+  if (interned != NULL) {
+    return interned;
+  }
+
   char *heapChars = ALLOCATE(char, n + 1);
   strncpy(heapChars, chars, n);
   heapChars[n] = '\0';
@@ -60,6 +69,13 @@ ObjString *copyString(const char *chars, int n) {
 
 ObjString *takeString(char *chars, int n) {
   uint32_t hash = hashString(chars, n);
+
+  ObjString *interned = tableFindString(&vm.strings, chars, n, hash);
+  if (interned != NULL) {
+    FREE_ARRAY(char, chars, n + 1); // + 1 for null byte
+    return interned;
+  }
+
   return allocateObjString(chars, n, hash);
 }
 

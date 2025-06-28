@@ -1,5 +1,4 @@
 #include "minunit.h"
-#include "object.h"
 #include "test_runners.h"
 #include "value.h"
 
@@ -68,24 +67,6 @@ MU_TEST(test_valuesEq_differentType) {
   ASSERT_EQ_INT(false, valuesEq(a, b));
 }
 
-MU_TEST(test_valuesEq_string) {
-  ObjString aStr = makeObjString("a", 1);
-  ObjString bStr = makeObjString("a", 1);
-
-  Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
-
-  ASSERT_EQ_INT(true, valuesEq(a, b));
-}
-
-MU_TEST(test_valuesEq_stringNotEq) {
-  ObjString aStr = makeObjString("a", 1);
-  ObjString bStr = makeObjString("b", 1);
-
-  Value a = OBJ_VAL(&aStr), b = OBJ_VAL(&bStr);
-
-  ASSERT_EQ_INT(false, valuesEq(a, b));
-}
-
 MU_TEST_SUITE(value_tests) {
   MU_RUN_TEST(test_initValueList);
   MU_RUN_TEST(test_appendValueList);
@@ -96,6 +77,4 @@ MU_TEST_SUITE(value_tests) {
   MU_RUN_TEST(test_valuesEq_bool);
   MU_RUN_TEST(test_valuesEq_boolNotEq);
   MU_RUN_TEST(test_valuesEq_differentType);
-  MU_RUN_TEST(test_valuesEq_string);
-  MU_RUN_TEST(test_valuesEq_stringNotEq);
 }

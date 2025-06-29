@@ -91,10 +91,53 @@ MU_TEST(test_compile_logicalOr) {
   ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
+MU_TEST(test_compile_defineGlobalVariable) {
+  const char *source = "var x = true;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_DEF_GLOBAL, 0x00, OP_RETURN};
+  Value constants[]  = {OBJ_VAL(copyString("x", 1))};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 4);
+  ASSERT_CONSTS(chunk, constants, 1);
+}
+
+MU_TEST(test_compile_getGlobalVariable) {
+  const char *source = "print x;";
+
+  uint8_t bytecode[] = {OP_GET_GLOBAL, 0x00, OP_PRINT, OP_RETURN};
+  Value constants[]  = {OBJ_VAL(copyString("x", 1))};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 4);
+  ASSERT_CONSTS(chunk, constants, 1);
+}
+
+MU_TEST(test_compile_setGlobalVariable) {
+  const char *source = "x = true;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_SET_GLOBAL, 0x00, OP_POP, OP_RETURN};
+  Value constants[]  = {OBJ_VAL(copyString("x", 1))};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 5);
+  ASSERT_CONSTS(chunk, constants, 1);
+}
+
 MU_TEST_SUITE(compiler_tests) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
+
   MU_RUN_TEST(test_compile_termExpression);
   MU_RUN_TEST(test_compile_mixedPrecedence);
   MU_RUN_TEST(test_compile_logicalAnd);
   MU_RUN_TEST(test_compile_logicalOr);
+  MU_RUN_TEST(test_compile_defineGlobalVariable);
+  MU_RUN_TEST(test_compile_getGlobalVariable);
+  MU_RUN_TEST(test_compile_setGlobalVariable);
 }

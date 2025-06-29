@@ -24,6 +24,7 @@ char *tokTypeStr(TokType type) {
     case TOK_TRUE:        return "TOK_TRUE";
     case TOK_FALSE:       return "TOK_FALSE";
     case TOK_NIL:         return "TOK_NIL";
+    case TOK_VAR:         return "TOK_VAR";
     case TOK_PRINT:       return "TOK_PRINT";
     case TOK_SEMICOLON:   return "TOK_SEMICOLON";
     case TOK_ERR:         return "TOK_ERR";

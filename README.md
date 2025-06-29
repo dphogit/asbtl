@@ -12,44 +12,52 @@ language from [Crafting Interpreters](https://craftinginterpreters.com/).
 
 Used for parsing the sequence of scanned tokens during bytecode compilation.
 
-```ebnf
-program   : statement* EOF ;
+```text
+program    : declaration* EOF ;
 
-statement : printStmt
-          | exprStmt ;
+declaration: varDecl
+           | statement
 
-printStmt : 'print' expression ';' ;
+varDecl    : 'var' IDENTIFIER ( '=' expression )? ';' ;
 
-exprStmt  : expression ';' ;
+statement  : printStmt
+           | exprStmt ;
 
-expression: or ;
+printStmt  : 'print' expression ';' ;
 
-or        : and ( '||' and )* ;
+exprStmt   : expression ';' ;
 
-and       : equality ( '&&' equality )* ;
+expression : assignment ;
 
-equality  : comparison ( ( '==' | '!=' ) comparison )* ;
+assignment : IDENTIFIER '=' assignment
+           | or ;
 
-comparison: term ( ( '<' | '<=' | '>' | '>=' ) term )* ;
+or         : and ( '||' and )* ;
 
-term      : factor ( ( '+' | '-' ) factor )* ;
+and        : equality ( '&&' equality )* ;
 
-factor    : unary ( ( '*' | '/' ) unary )* ;
+equality   : comparison ( ( '==' | '!=' ) comparison )* ;
 
-unary     : (( '-' | '!' ) unary ) | primary ;
+comparison : term ( ( '<' | '<=' | '>' | '>=' ) term )* ;
 
-primary   : NUMBER
-          | STRING
-          | 'false' | 'true' | 'nil'
-          | IDENTIFIER
-          | '(' expression ')' ;
+term       : factor ( ( '+' | '-' ) factor )* ;
+
+factor     : unary ( ( '*' | '/' ) unary )* ;
+
+unary      : (( '-' | '!' ) unary ) | primary ;
+
+primary    : NUMBER
+           | STRING
+           | 'false' | 'true' | 'nil'
+           | IDENTIFIER
+           | '(' expression ')' ;
 ```
 
 ### Lexical Grammar
 
 Used by the scanner to obtain the tokens from the initial input.
 
-```ebnf
+```text
 NUMBER    : DIGIT+ ('.' DIGIT+)? ;
 STRING    : '"' [any character except '"'] '"' ;
 IDENTIFIER: ALPHA (ALPHA | DIGIT)* ;

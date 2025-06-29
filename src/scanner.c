@@ -121,6 +121,7 @@ static TokType identifierType(Scanner *scanner) {
     case 'n': return checkKeyword(scanner, 1, 2, "il", TOK_NIL);
     case 'p': return checkKeyword(scanner, 1, 4, "rint", TOK_PRINT);
     case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
+    case 'v': return checkKeyword(scanner, 1, 2, "ar", TOK_VAR);
     default:  return TOK_IDENTIFIER;
   }
 }

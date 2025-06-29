@@ -2,6 +2,7 @@
 
 #include "chunk.h"
 #include "compiler.h"
+#include "hashtable.h"
 #include "memory.h"
 #include "object.h"
 
@@ -51,11 +52,13 @@ static void runtimeError(const char *format, ...) {
 void initVM() {
   resetStack();
   vm.objs = NULL;
+  initHashTable(&vm.globals);
   initHashTable(&vm.strings);
 }
 
 void freeVM() {
   freeHashTable(&vm.strings);
+  freeHashTable(&vm.globals);
   freeObjs();
 }
 
@@ -63,6 +66,7 @@ static InterpretResult run() {
 #define READ_BYTE()     (*vm.ip++)
 #define READ_SHORT()    (vm.ip += 2, ((vm.ip[-2] << 8) | vm.ip[-1]))
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define READ_STRING()   AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                 \
   do {                                           \
     if (!IS_NUM(peek(0)) || !IS_NUM(peek(1))) {  \
@@ -134,6 +138,31 @@ static InterpretResult run() {
         uint16_t toJump = READ_SHORT();
         if (!(isFalsy(peek(0))))
           vm.ip += toJump;
+        continue;
+      }
+      case OP_DEF_GLOBAL: {
+        ObjString *name = READ_STRING();
+        hashTableSet(&vm.globals, name, peek(0));
+        pop();
+        continue;
+      }
+      case OP_GET_GLOBAL: {
+        ObjString *name = READ_STRING();
+        Value value;
+        if (!hashTableGet(&vm.globals, name, &value)) {
+          runtimeError("undefined variable '%s'", name->chars);
+          return INTERPRET_RUNTIME_ERR;
+        }
+        push(value);
+        continue;
+      }
+      case OP_SET_GLOBAL: {
+        ObjString *name = READ_STRING();
+        if (hashTableSet(&vm.globals, name, peek(0))) {
+          hashTableRemove(&vm.globals, name);
+          runtimeError("undefined variable '%s'", name->chars);
+          return INTERPRET_RUNTIME_ERR;
+        }
         continue;
       }
       case OP_PRINT: {

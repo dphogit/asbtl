@@ -35,6 +35,9 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
 
   OpCode opCode = chunk->code[offset];
   switch (opCode) {
+    case OP_DEF_GLOBAL:
+    case OP_GET_GLOBAL:
+    case OP_SET_GLOBAL:
     case OP_CONSTANT:      return constant(chunk, offset);
     case OP_JUMP_IF_TRUE:
     case OP_JUMP_IF_FALSE: return jump(chunk, 1, offset);

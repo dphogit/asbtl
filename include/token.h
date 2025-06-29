@@ -25,6 +25,7 @@ typedef enum tok_type {
   TOK_TRUE,
   TOK_FALSE,
   TOK_NIL,
+  TOK_VAR,
 
   TOK_SEMICOLON,
   TOK_PRINT,

@@ -16,6 +16,7 @@ typedef struct vm {
   uint8_t *ip;       // Points to next bytecode instruction to execute
   Obj *objs;         // Intrusive linked list of runtime allocated objects
   HashTable strings; // String interning pool (hash set)
+  HashTable globals; // Global variables
 } VM;
 
 extern VM vm;

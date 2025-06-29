@@ -27,6 +27,9 @@ const char *opCodeStr(OpCode opCode) {
     case OP_POP:           return "OP_POP";
     case OP_JUMP_IF_FALSE: return "OP_JUMP_IF_FALSE";
     case OP_JUMP_IF_TRUE:  return "OP_JUMP_IF_TRUE";
+    case OP_DEF_GLOBAL:    return "OP_DEF_GLOBAL";
+    case OP_GET_GLOBAL:    return "OP_GET_GLOBAL";
+    case OP_SET_GLOBAL:    return "OP_SET_GLOBAL";
     case OP_PRINT:         return "OP_PRINT";
     case OP_RETURN:        return "OP_RETURN";
   }

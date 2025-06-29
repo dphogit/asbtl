@@ -18,6 +18,17 @@ typedef struct parser {
   bool panicMode;
 } Parser;
 
+// Types of expressions in the grammar's expression-related rules. These types
+// are returned up from the parser's recursive descent.
+typedef enum expr_type {
+  EXPR_BINARY,
+  EXPR_GROUP,
+  EXPR_LITERAL,
+  EXPR_UNARY,
+  EXPR_VAR,
+  EXPR_ERR,
+} ExprType;
+
 Parser parser;
 
 static void expression();
@@ -69,7 +80,7 @@ static void advance() {
   }
 }
 
-static void consume(TokType type, char *message) {
+static void consume(TokType type, const char *message) {
   if (parser.cur.type != type) {
     errorCur(message);
     return;
@@ -132,20 +143,50 @@ static void patchJump(int offset) {
   chunk->code[offset + 1] = bytesToJump & 0xFF;        // Low byte
 }
 
-static void emitConstant(Value constant) {
+static unsigned int makeConstant(Value constant) {
   unsigned int constantIndex = appendConstant(currentChunk(), constant);
 
+  // A byte can only refer to 256 different constant indexes.
   if (constantIndex > UINT8_MAX) {
-    // A byte can only refer to 256 different constant indexes.
     errorPrev("exceeded max of 256 constants in one chunk");
-    return;
+    return 0;
   }
 
-  emitBytes(OP_CONSTANT, constantIndex);
+  return constantIndex;
+}
+
+static void emitConstant(Value constant) {
+  emitBytes(OP_CONSTANT, makeConstant(constant));
+}
+
+static uint8_t identifierConstant(Token *name) {
+  ObjString *identifier = copyString(name->start, name->len);
+  return makeConstant(OBJ_VAL(identifier));
+}
+
+static uint8_t parseVariable(const char *errorMessage) {
+  consume(TOK_IDENTIFIER, errorMessage);
+  return identifierConstant(&parser.prev);
 }
 
 static void emitReturn() {
   emitByte(OP_RETURN);
+}
+
+// Skip tokens until a statement boundary is reached
+static void synchronize() {
+  parser.panicMode = false;
+
+  while (parser.cur.type != TOK_EOF) {
+    if (parser.prev.type == TOK_SEMICOLON)
+      return;
+
+    switch (parser.cur.type) {
+      case TOK_VAR:
+      case TOK_PRINT: return;
+      default:        advance();
+    }
+  }
 }
 
 static void number() {
@@ -167,59 +208,72 @@ static void grouping() {
   consume(TOK_RIGHT_PAREN, "expect closing ')' after expression");
 }
 
-static void primary() {
+static void variable() {
+  // Only get the variable if it is not being assigned to
+  if (!check(TOK_EQ)) {
+    emitBytes(OP_GET_GLOBAL, identifierConstant(&parser.prev));
+  }
+}
+
+static ExprType primary() {
   if (match(TOK_NUMBER)) {
     number();
-    return;
+    return EXPR_LITERAL;
   }
 
   if (match(TOK_STRING)) {
     string();
-    return;
+    return EXPR_LITERAL;
   }
 
   if (match(TOK_LEFT_PAREN)) {
     grouping();
-    return;
+    return EXPR_GROUP;
   }
 
   if (match(TOK_FALSE)) {
     emitByte(OP_FALSE);
-    return;
+    return EXPR_LITERAL;
   }
 
   if (match(TOK_TRUE)) {
     emitByte(OP_TRUE);
-    return;
+    return EXPR_LITERAL;
   }
 
   if (match(TOK_NIL)) {
     emitByte(OP_NIL);
-    return;
+    return EXPR_LITERAL;
+  }
+
+  if (match(TOK_IDENTIFIER)) {
+    variable();
+    return EXPR_VAR;
   }
 
   errorCur("expect expression");
+  return EXPR_ERR;
 }
 
-static void unary() {
+static ExprType unary() {
   // allow recursive calls to itself for multiple prefixes e.g. "--5"
   if (match(TOK_BANG)) {
     unary();
     emitByte(OP_NOT);
-    return;
+    return EXPR_UNARY;
   }
 
   if (match(TOK_MINUS)) {
     unary();
     emitByte(OP_NEGATE);
-    return;
+    return EXPR_UNARY;
   }
 
-  primary();
+  return primary();
 }
 
-static void factor() {
-  unary();
+static ExprType factor() {
+  ExprType exprType = unary();
 
   while (match(TOK_STAR) || match(TOK_SLASH)) {
     TokType type = parser.prev.type;
@@ -231,11 +285,15 @@ static void factor() {
       case TOK_SLASH: emitByte(OP_DIVIDE); break;
       default:        break;
     }
+
+    exprType = EXPR_BINARY;
   }
+
+  return exprType;
 }
 
-static void term() {
-  factor();
+static ExprType term() {
+  ExprType exprType = factor();
 
   while (match(TOK_PLUS) || match(TOK_MINUS)) {
     TokType type = parser.prev.type;
@@ -247,11 +305,15 @@ static void term() {
       case TOK_MINUS: emitByte(OP_SUBTRACT); break;
       default:        break;
     }
+
+    exprType = EXPR_BINARY;
   }
+
+  return exprType;
 }
 
-static void comparison() {
-  term();
+static ExprType comparison() {
+  ExprType exprType = term();
 
   while (match(TOK_LESS) || match(TOK_LESS_EQ) || match(TOK_GREATER) ||
          match(TOK_GREATER_EQ)) {
@@ -266,11 +328,15 @@ static void comparison() {
       case TOK_GREATER:    emitByte(OP_GREATER); break;
       default:             break;
     }
+
+    exprType = EXPR_BINARY;
   }
+
+  return exprType;
 }
 
-static void equality() {
-  comparison();
+static ExprType equality() {
+  ExprType exprType = comparison();
 
   while (match(TOK_EQ_EQ) || match(TOK_BANG_EQ)) {
     TokType type = parser.prev.type;
@@ -282,33 +348,62 @@ static void equality() {
       case TOK_BANG_EQ: emitByte(OP_NOT_EQ); break;
       default:          break;
     }
+
+    exprType = EXPR_BINARY;
   }
+
+  return exprType;
 }
 
-static void logicalAnd() {
-  equality();
+static ExprType logicalAnd() {
+  ExprType exprType = equality();
 
   while (match(TOK_AND)) {
     int operandOffset = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP); // if LHS falsy, pop removes it from stack
     equality();
     patchJump(operandOffset);
+    exprType = EXPR_BINARY;
   }
+
+  return exprType;
 }
 
-static void logicalOr() {
-  logicalAnd();
+static ExprType logicalOr() {
+  ExprType exprType = logicalAnd();
 
   while (match(TOK_OR)) {
     int operandOffset = emitJump(OP_JUMP_IF_TRUE);
     emitByte(OP_POP); // if LHS falsy, pop removes it from stack
     logicalAnd();
     patchJump(operandOffset);
+    exprType = EXPR_BINARY;
+  }
+
+  return exprType;
+}
+
+static void assignment() {
+  ExprType exprType = logicalOr();
+
+  if (check(TOK_EQ)) {
+    Token name = parser.prev;
+
+    advance(); // consume '='
+
+    switch (exprType) {
+      case EXPR_VAR: {
+        assignment();
+        emitBytes(OP_SET_GLOBAL, identifierConstant(&name));
+        break;
+      }
+      default: errorPrev("invalid assignment target");
+    }
   }
 }
 
 static void expression() {
-  logicalOr();
+  assignment();
 }
 
 static void printStmt() {
@@ -332,6 +427,31 @@ static void statement() {
   exprStmt();
 }
 
+static void varDecl() {
+  uint8_t identifierIndex = parseVariable("expect variable name");
+
+  if (match(TOK_EQ)) {
+    expression();
+  } else {
+    emitByte(OP_NIL);
+  }
+
+  consume(TOK_SEMICOLON, "expect ';' after variable declaration");
+  emitBytes(OP_DEF_GLOBAL, identifierIndex);
+}
+
+static void declaration() {
+  if (match(TOK_VAR)) {
+    varDecl();
+  } else {
+    statement();
+  }
+
+  if (parser.panicMode) {
+    synchronize();
+  }
+}
+
 static void endCompiler() {
   emitReturn();
 }
@@ -348,7 +468,7 @@ bool compile(const char *source, Chunk *chunk) {
   advance();
 
   while (!match(TOK_EOF)) {
-    statement();
+    declaration();
   }
 
   endCompiler();

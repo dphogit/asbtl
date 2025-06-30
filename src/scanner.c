@@ -117,7 +117,9 @@ static TokType checkKeyword(Scanner *scanner, int start, int len,
 static TokType identifierType(Scanner *scanner) {
   // Use a trie to find if it is a language keyword or identifier
   switch (scanner->start[0]) {
+    case 'e': return checkKeyword(scanner, 1, 3, "lse", TOK_ELSE);
     case 'f': return checkKeyword(scanner, 1, 4, "alse", TOK_FALSE);
+    case 'i': return checkKeyword(scanner, 1, 1, "f", TOK_IF);
     case 'n': return checkKeyword(scanner, 1, 2, "il", TOK_NIL);
     case 'p': return checkKeyword(scanner, 1, 4, "rint", TOK_PRINT);
     case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
@@ -182,8 +184,10 @@ Token scanNext(Scanner *scanner) {
     case '*': return token(scanner, TOK_STAR);
     case '/': return token(scanner, TOK_SLASH);
     case '(': return token(scanner, TOK_LEFT_PAREN);
-    case ';': return token(scanner, TOK_SEMICOLON);
     case ')': return token(scanner, TOK_RIGHT_PAREN);
+    case '{': return token(scanner, TOK_LEFT_BRACE);
+    case '}': return token(scanner, TOK_RIGHT_BRACE);
+    case ';': return token(scanner, TOK_SEMICOLON);
     case '"': return string(scanner);
     case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);
     case '!':

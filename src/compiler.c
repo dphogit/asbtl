@@ -32,6 +32,8 @@ typedef enum expr_type {
 Parser parser;
 
 static void expression();
+static void declaration();
+static void statement();
 
 static Chunk *currentChunk() {
   return parser.chunk;
@@ -182,6 +184,7 @@ static void synchronize() {
       return;
 
     switch (parser.cur.type) {
+      case TOK_IF:
       case TOK_VAR:
       case TOK_PRINT: return;
       default:        advance();
@@ -406,10 +409,12 @@ static void expression() {
   assignment();
 }
 
-static void printStmt() {
-  expression();
-  consume(TOK_SEMICOLON, "expect ';' at end");
-  emitByte(OP_PRINT);
+static void blockStmt() {
+  while (!check(TOK_RIGHT_BRACE) && !check(TOK_EOF)) {
+    declaration();
+  }
+
+  consume(TOK_RIGHT_BRACE, "expect '}' at end of block");
 }
 
 static void exprStmt() {
@@ -418,7 +423,53 @@ static void exprStmt() {
   emitByte(OP_POP);
 }
 
+static void ifStmt() {
+  // Compile the condition and leave it on the stack
+  consume(TOK_LEFT_PAREN, "expect '(' after 'if'");
+  expression();
+  consume(TOK_RIGHT_PAREN, "expect ')' after 'if'");
+
+  // Emit a OP_JUMP_IF_FALSE to jump past the true condition branch
+  int ifFalseOperandOffset = emitJump(OP_JUMP_IF_FALSE);
+
+  // True branch. No jump from OP_JUMP_IF_FALSE.
+  // Pop the condition and compile the 'then' statement.
+  emitByte(OP_POP);
+  statement();
+
+  // At the end of the 'then' statement, emit a OP_JUMP to jump over the 'else'.
+  int endThenOperandOffset = emitJump(OP_JUMP);
+
+  // Else branch - OP_JUMP_IF_FALSE jumps here.
+  // Pop the condition and compile the 'else' statement (if any).
+  patchJump(ifFalseOperandOffset);
+  emitByte(OP_POP);
+
+  if (match(TOK_ELSE)) {
+    statement();
+  }
+
+  // Patch the end of the 'then' statement OP_JUMP to skip the 'else' branch.
+  patchJump(endThenOperandOffset);
+}
+
+static void printStmt() {
+  expression();
+  consume(TOK_SEMICOLON, "expect ';' at end");
+  emitByte(OP_PRINT);
+}
+
 static void statement() {
+  if (match(TOK_LEFT_BRACE)) {
+    blockStmt();
+    return;
+  }
+
+  if (match(TOK_IF)) {
+    ifStmt();
+    return;
+  }
+
   if (match(TOK_PRINT)) {
     printStmt();
     return;

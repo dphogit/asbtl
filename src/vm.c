@@ -140,6 +140,11 @@ static InterpretResult run() {
           vm.ip += toJump;
         continue;
       }
+      case OP_JUMP: {
+        uint16_t toJump = READ_SHORT();
+        vm.ip += toJump;
+        continue;
+      }
       case OP_DEF_GLOBAL: {
         ObjString *name = READ_STRING();
         hashTableSet(&vm.globals, name, peek(0));

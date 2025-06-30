@@ -8,6 +8,8 @@ char *tokTypeStr(TokType type) {
     case TOK_SLASH:       return "TOK_SLASH";
     case TOK_LEFT_PAREN:  return "TOK_LEFT_PAREN";
     case TOK_RIGHT_PAREN: return "TOK_RIGHT_PAREN";
+    case TOK_LEFT_BRACE:  return "TOK_LEFT_BRACE";
+    case TOK_RIGHT_BRACE: return "TOK_RIGHT_BRACE";
     case TOK_STRING:      return "TOK_STRING";
     case TOK_BANG:        return "TOK_BANG";
     case TOK_BANG_EQ:     return "TOK_BANG_EQ";
@@ -25,6 +27,8 @@ char *tokTypeStr(TokType type) {
     case TOK_FALSE:       return "TOK_FALSE";
     case TOK_NIL:         return "TOK_NIL";
     case TOK_VAR:         return "TOK_VAR";
+    case TOK_IF:          return "TOK_IF";
+    case TOK_ELSE:        return "TOK_ELSE";
     case TOK_PRINT:       return "TOK_PRINT";
     case TOK_SEMICOLON:   return "TOK_SEMICOLON";
     case TOK_ERR:         return "TOK_ERR";

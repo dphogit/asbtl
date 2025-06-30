@@ -25,6 +25,7 @@ typedef enum op_code {
   OP_POP,
   OP_JUMP_IF_FALSE,
   OP_JUMP_IF_TRUE,
+  OP_JUMP,
   OP_DEF_GLOBAL,
   OP_GET_GLOBAL,
   OP_SET_GLOBAL,

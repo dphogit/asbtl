@@ -20,12 +20,18 @@ declaration: varDecl
 
 varDecl    : 'var' IDENTIFIER ( '=' expression )? ';' ;
 
-statement  : printStmt
-           | exprStmt ;
+statement  : blockStmt
+           | exprStmt
+           | ifStmt
+           | printStmt ;
 
-printStmt  : 'print' expression ';' ;
+blockStmt  : '{' declaration* '}' ;
 
 exprStmt   : expression ';' ;
+
+ifStmt     : 'if' '(' expression ')' statement ( 'else' statement )? ;
+
+printStmt  : 'print' expression ';' ;
 
 expression : assignment ;
 

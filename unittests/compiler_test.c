@@ -91,6 +91,32 @@ MU_TEST(test_compile_logicalOr) {
   ASSERT_BYTECODE(chunk, bytecode, 8);
 }
 
+MU_TEST(test_compile_ifStmt) {
+  const char *source = "if (true) print true;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,    0x06, OP_POP,
+                        OP_TRUE, OP_PRINT,         OP_JUMP, 0x00, 0x01,
+                        OP_POP,  OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 12);
+}
+
+MU_TEST(test_compile_ifElseStmt) {
+  const char *source = "if (true) print true; else print false;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,     0x06,     OP_POP,
+                        OP_TRUE, OP_PRINT,         OP_JUMP,  0x00,     0x03,
+                        OP_POP,  OP_FALSE,         OP_PRINT, OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 14);
+}
+
 MU_TEST(test_compile_defineGlobalVariable) {
   const char *source = "var x = true;";
 
@@ -135,8 +161,12 @@ MU_TEST_SUITE(compiler_tests) {
 
   MU_RUN_TEST(test_compile_termExpression);
   MU_RUN_TEST(test_compile_mixedPrecedence);
+
   MU_RUN_TEST(test_compile_logicalAnd);
   MU_RUN_TEST(test_compile_logicalOr);
+  MU_RUN_TEST(test_compile_ifStmt);
+  MU_RUN_TEST(test_compile_ifElseStmt);
+
   MU_RUN_TEST(test_compile_defineGlobalVariable);
   MU_RUN_TEST(test_compile_getGlobalVariable);
   MU_RUN_TEST(test_compile_setGlobalVariable);

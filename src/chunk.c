@@ -32,8 +32,8 @@ const char *opCodeStr(OpCode opCode) {
     case OP_SET_GLOBAL:    return "OP_SET_GLOBAL";
     case OP_PRINT:         return "OP_PRINT";
     case OP_RETURN:        return "OP_RETURN";
+    default:               return "unknown opcode";
   }
-  return "unknown opcode";
 }
 
 void initChunk(Chunk *chunk) {

@@ -30,6 +30,7 @@ typedef enum tok_type {
   TOK_VAR,
   TOK_IF,
   TOK_ELSE,
+  TOK_WHILE,
 
   TOK_SEMICOLON,
   TOK_PRINT,

@@ -115,6 +115,25 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
 }
 
 /*
+ * Emits the OP_LOOP instruction with a 2-byte operand. The operand specifies
+ * the number of instructions to jump back - this calculated value includes
+ * the jump of the 2-byte operand as well (count - loopStartOffset + 2).
+ */
+static void emitLoop(unsigned int loopStartOffset) {
+  emitByte(OP_LOOP);
+
+  Chunk *chunk        = currentChunk();
+  int bytesToJumpBack = chunk->count - loopStartOffset + 2;
+
+  if (bytesToJumpBack > UINT16_MAX) {
+    errorPrev("loop body jump exceeded max of 65535 bytes to");
+  }
+
+  emitByte((bytesToJumpBack >> 8) & 0xFF); // High byte
+  emitByte(bytesToJumpBack & 0xFF);        // Low byte
+}
+
+/*
  * Emits the supplied jump instruction with a 2-byte placeholder operand. The
  * operand should then be backpatched with patchJump(). Returns the offset of
  * the operand's first byte (i.e. high byte).
@@ -135,12 +154,10 @@ static void patchJump(int offset) {
   Chunk *chunk    = currentChunk();
   int bytesToJump = chunk->count - offset - 2;
 
-  // 2-byte operand => max value of 65535
   if (bytesToJump > UINT16_MAX) {
     errorPrev("exceeded max of 65535 bytes to jump over");
   }
 
-  // Split and write the 2-byte (16-bit) operand into the respective bytes
   chunk->code[offset]     = (bytesToJump >> 8) & 0xFF; // High byte
   chunk->code[offset + 1] = bytesToJump & 0xFF;        // Low byte
 }
@@ -459,6 +476,27 @@ static void printStmt() {
   emitByte(OP_PRINT);
 }
 
+static void whileStmt() {
+  unsigned int conditionOffset = currentChunk()->count;
+
+  // Condition
+  consume(TOK_LEFT_PAREN, "expect '(' after 'while'");
+  expression();
+  consume(TOK_RIGHT_PAREN, "expect ')' after condition");
+
+  int exitLoopOperandOffset = emitJump(OP_JUMP_IF_FALSE);
+
+  // While statement body - pop the condition, compile body and emit the loop
+  // bytecode to jump back to before the condition expression.
+  emitByte(OP_POP);
+  statement();
+  emitLoop(conditionOffset);
+
+  // Backpatch the exit loop jump, and pop the condition a final time
+  patchJump(exitLoopOperandOffset);
+  emitByte(OP_POP);
+}
+
 static void statement() {
   if (match(TOK_LEFT_BRACE)) {
     blockStmt();
@@ -472,6 +510,11 @@ static void statement() {
 
   if (match(TOK_PRINT)) {
     printStmt();
+    return;
+  }
+
+  if (match(TOK_WHILE)) {
+    whileStmt();
     return;
   }
 

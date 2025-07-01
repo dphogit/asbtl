@@ -24,7 +24,7 @@ MU_TEST(test_scanNext) {
 
   Scanner scanner;
   initScanner(&scanner, "+ - * / ( ) { } ! ; = < <= == != >= > || && 123 false "
-                        "true nil \"string\" var myVar if else");
+                        "true nil \"string\" var myVar if else while");
 
   Token tok = scanNext(&scanner);
   ASSERT_TOK(tok, "+", 1, TOK_PLUS);
@@ -109,6 +109,9 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "else", 4, TOK_ELSE);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "while", 5, TOK_WHILE);
 
   tok = scanNext(&scanner);
   ASSERT_EQ_INT(TOK_EOF, tok.type);

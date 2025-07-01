@@ -117,6 +117,19 @@ MU_TEST(test_compile_ifElseStmt) {
   ASSERT_BYTECODE(chunk, bytecode, 14);
 }
 
+MU_TEST(test_compile_whileLoop) {
+  const char *source = "while (true) print true;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_JUMP_IF_FALSE, 0x00,    0x06, OP_POP,
+                        OP_TRUE, OP_PRINT,         OP_LOOP, 0x00, 0x0A,
+                        OP_POP,  OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 12);
+}
+
 MU_TEST(test_compile_defineGlobalVariable) {
   const char *source = "var x = true;";
 
@@ -166,6 +179,7 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_logicalOr);
   MU_RUN_TEST(test_compile_ifStmt);
   MU_RUN_TEST(test_compile_ifElseStmt);
+  MU_RUN_TEST(test_compile_whileLoop);
 
   MU_RUN_TEST(test_compile_defineGlobalVariable);
   MU_RUN_TEST(test_compile_getGlobalVariable);

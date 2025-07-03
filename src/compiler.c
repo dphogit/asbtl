@@ -34,6 +34,7 @@ Parser parser;
 static void expression();
 static void declaration();
 static void statement();
+static void varDecl();
 
 static Chunk *currentChunk() {
   return parser.chunk;
@@ -497,6 +498,63 @@ static void whileStmt() {
   emitByte(OP_POP);
 }
 
+static void forStmt() {
+#define NO_EXIT_LOOP_OFFSET (-1)
+
+  consume(TOK_LEFT_PAREN, "expect '(' after 'for'");
+
+  // Initializer
+  if (match(TOK_SEMICOLON)) {
+    // No initializer
+  } else if (match(TOK_VAR)) {
+    varDecl();
+  } else {
+    exprStmt();
+  }
+
+  // Condition
+  unsigned int loopStartOffset = currentChunk()->count;
+  int exitLoopOperandOffset    = NO_EXIT_LOOP_OFFSET;
+
+  if (!match(TOK_SEMICOLON)) {
+    expression();
+    consume(TOK_SEMICOLON, "expect ';' after 'for' loop condition");
+
+    exitLoopOperandOffset = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // pop loop condition off stack when it is true
+  }
+
+  // Increment
+  if (!match(TOK_RIGHT_PAREN)) {
+    int incrementOperandOffset        = emitJump(OP_JUMP);
+    unsigned int incrementStartOffset = currentChunk()->count;
+
+    expression();
+    emitByte(OP_POP); // pop evaluated expression off stack
+    consume(TOK_RIGHT_PAREN, "expect ')' after 'for' loop clauses");
+
+    // The increment runs after the body, so we need to jump back to the start
+    // of the loop after the increment. After, reassign the loopStartOffset
+    // so that when compiling the body next, it jumps back to the increment.
+    emitLoop(loopStartOffset);
+    loopStartOffset = incrementStartOffset;
+    patchJump(incrementOperandOffset);
+  }
+
+  // Body - after compilation, jumps to start of increment. If there is no
+  // increment jump goes back to the start of the loop at the condition.
+  statement();
+  emitLoop(loopStartOffset);
+
+  // Patch the condition jump (if there was a condition)
+  if (exitLoopOperandOffset != NO_EXIT_LOOP_OFFSET) {
+    patchJump(exitLoopOperandOffset);
+    emitByte(OP_POP); // pop loop condition off stack when it is false
+  }
+
+#undef NO_EXIT_LOOP_OFFSET
+}
+
 static void statement() {
   if (match(TOK_LEFT_BRACE)) {
     blockStmt();
@@ -515,6 +573,11 @@ static void statement() {
 
   if (match(TOK_WHILE)) {
     whileStmt();
+    return;
+  }
+
+  if (match(TOK_FOR)) {
+    forStmt();
     return;
   }
 

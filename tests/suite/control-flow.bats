@@ -64,3 +64,44 @@ teardown() {
   assert_line -n 1 '2'
   assert_line -n 2 '3'
 }
+
+@test "for loop single expression body" {
+  _run_asbtl "for (var i = 0; i < 3; i = i + 1) print i + 1;"
+  assert_success
+  assert_line -n 0 '1'
+  assert_line -n 1 '2'
+  assert_line -n 2 '3'
+}
+
+@test "for loop block body" {
+  _run_asbtl "for (var i = 0; i < 3; i = i + 1) { print i + 1; }"
+  assert_success
+  assert_line -n 0 '1'
+  assert_line -n 1 '2'
+  assert_line -n 2 '3'
+}
+
+@test "for loop variable defined and initialized before" {
+  _run_asbtl "var i = 0; for (i = 0; i < 3; i = i + 1) { print i + 1; }"
+  assert_success
+  assert_line -n 0 '1'
+  assert_line -n 1 '2'
+  assert_line -n 2 '3'
+}
+
+@test "for loop no condition clause" {
+  skip # TODO: Implement break/continue statements once scope is introduced
+  _run_asbtl "for (var i = 0; ; i = i + 1) { print i + 1; if (i == 2) break; }"
+  assert_success
+  assert_line -n 0 '1'
+  assert_line -n 1 '2'
+  assert_line -n 2 '3'
+}
+
+@test "for loop no increment clause" {
+  _run_asbtl "for (var i = 0; i < 3; ) { i = i + 1; print i; }"
+  assert_success
+  assert_line -n 0 '1'
+  assert_line -n 1 '2'
+  assert_line -n 2 '3'
+}

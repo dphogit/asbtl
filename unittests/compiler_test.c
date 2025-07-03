@@ -4,6 +4,7 @@
 #include "test_runners.h"
 
 #include "minunit.h"
+#include "value.h"
 #include "vm.h"
 
 #define ASSERT_BYTECODE(chunk, bytecode, n) \
@@ -130,6 +131,95 @@ MU_TEST(test_compile_whileLoop) {
   ASSERT_BYTECODE(chunk, bytecode, 12);
 }
 
+MU_TEST(test_compile_forLoop_noClauses) {
+  const char *source = "for (;;) print true;";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_PRINT, OP_LOOP, 0x00, 0x05, OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 6);
+}
+
+MU_TEST(test_compile_forLoop_initializerOnly) {
+  const char *source = "for (i = 0; ;) print true;";
+
+  uint8_t bytecode[] = {OP_CONSTANT, 0x00,    OP_SET_GLOBAL, 0x01,
+                        OP_POP,      OP_TRUE, OP_PRINT,      OP_LOOP,
+                        0x00,        0x05,    OP_RETURN};
+  Value constants[]  = {NUM_VAL(0), OBJ_VAL(copyString("i", 1))};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 11);
+  ASSERT_CONSTS(chunk, constants, 2);
+}
+
+MU_TEST(test_compile_forLoop_initializerAndCondition) {
+  const char *source = "for (i = 0; i < 5; ) print true;";
+
+  uint8_t bytecode[] = {// Initializer
+                        OP_CONSTANT, 0x00, OP_SET_GLOBAL, 0x01, OP_POP,
+                        // Initializer end
+
+                        // Condition
+                        OP_GET_GLOBAL, 0x02, OP_CONSTANT, 0x03, OP_LESS,
+                        OP_JUMP_IF_FALSE, 0x00, 0x06, OP_POP,
+                        // Condition end
+
+                        // Body
+                        OP_TRUE, OP_PRINT, OP_LOOP, 0x00, 0x0E,
+                        // Body end
+
+                        OP_POP, OP_RETURN};
+
+  Value constants[] = {NUM_VAL(0), OBJ_VAL(copyString("i", 1)),
+                       OBJ_VAL(copyString("i", 1)), NUM_VAL(5)};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 21);
+  ASSERT_CONSTS(chunk, constants, 4);
+}
+
+MU_TEST(test_compile_forLoop_allClauses) {
+  const char *source = "for (i = 0; i < 5; i = i + 1) print true;";
+
+  uint8_t bytecode[] = {// Initializer start
+                        OP_CONSTANT, 0x00, OP_SET_GLOBAL, 0x01, OP_POP,
+                        // Initializer end
+
+                        // Condition start
+                        OP_GET_GLOBAL, 0x02, OP_CONSTANT, 0x03, OP_LESS,
+                        OP_JUMP_IF_FALSE, 0x00, 0x14, OP_POP, OP_JUMP, 0x00,
+                        0x0B,
+                        // Condition end
+
+                        // Increment start
+                        OP_GET_GLOBAL, 0x04, OP_CONSTANT, 0x05, OP_ADD,
+                        OP_SET_GLOBAL, 0x06, OP_POP, OP_LOOP, 0x00, 0x17,
+                        // Increment end - jump back to condition
+
+                        // Body start
+                        OP_TRUE, OP_PRINT, OP_LOOP, 0x00, 0x10,
+                        // Body end - jump to increment start
+
+                        OP_POP, OP_RETURN};
+
+  Value i = OBJ_VAL(copyString("i", 1));
+
+  Value constants[] = {NUM_VAL(0), i, i, NUM_VAL(5), i, NUM_VAL(1), i};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 35);
+  ASSERT_CONSTS(chunk, constants, 7);
+}
+
 MU_TEST(test_compile_defineGlobalVariable) {
   const char *source = "var x = true;";
 
@@ -180,6 +270,12 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_ifStmt);
   MU_RUN_TEST(test_compile_ifElseStmt);
   MU_RUN_TEST(test_compile_whileLoop);
+
+  // Where I struggled! Had to take an `incremental` approach :)
+  MU_RUN_TEST(test_compile_forLoop_noClauses);
+  MU_RUN_TEST(test_compile_forLoop_initializerOnly);
+  MU_RUN_TEST(test_compile_forLoop_initializerAndCondition);
+  MU_RUN_TEST(test_compile_forLoop_allClauses);
 
   MU_RUN_TEST(test_compile_defineGlobalVariable);
   MU_RUN_TEST(test_compile_getGlobalVariable);

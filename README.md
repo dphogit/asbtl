@@ -22,6 +22,7 @@ varDecl    : 'var' IDENTIFIER ( '=' expression )? ';' ;
 
 statement  : blockStmt
            | exprStmt
+           | forStmt
            | ifStmt
            | printStmt 
            | whileStmt ;
@@ -29,6 +30,10 @@ statement  : blockStmt
 blockStmt  : '{' declaration* '}' ;
 
 exprStmt   : expression ';' ;
+
+forStmt    : 'for' '(' ( varDecl | exprStmt | ';' )
+                       expression? ';'
+                       expression? ')' statement ;
 
 ifStmt     : 'if' '(' expression ')' statement ( 'else' statement )? ;
 

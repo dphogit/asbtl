@@ -118,15 +118,23 @@ static TokType identifierType(Scanner *scanner) {
   // Use a trie to find if it is a language keyword or identifier
   switch (scanner->start[0]) {
     case 'e': return checkKeyword(scanner, 1, 3, "lse", TOK_ELSE);
-    case 'f': return checkKeyword(scanner, 1, 4, "alse", TOK_FALSE);
+    case 'f':
+      if (scanner->cur - scanner->start > 1) {
+        switch (scanner->start[1]) {
+          case 'a': return checkKeyword(scanner, 2, 3, "lse", TOK_FALSE);
+          case 'o': return checkKeyword(scanner, 2, 1, "r", TOK_FOR);
+        }
+      }
+      break;
     case 'i': return checkKeyword(scanner, 1, 1, "f", TOK_IF);
     case 'n': return checkKeyword(scanner, 1, 2, "il", TOK_NIL);
     case 'p': return checkKeyword(scanner, 1, 4, "rint", TOK_PRINT);
     case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
     case 'v': return checkKeyword(scanner, 1, 2, "ar", TOK_VAR);
     case 'w': return checkKeyword(scanner, 1, 4, "hile", TOK_WHILE);
-    default:  return TOK_IDENTIFIER;
   }
+
+  return TOK_IDENTIFIER;
 }
 
 static Token identifier(Scanner *scanner) {

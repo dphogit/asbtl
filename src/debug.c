@@ -14,6 +14,16 @@ static unsigned int constant(Chunk *chunk, unsigned int offset) {
   return offset + 2;
 }
 
+static unsigned int byte(Chunk *chunk, unsigned int offset) {
+  const char *name = opCodeStr(chunk->code[offset]);
+  uint8_t slot     = chunk->code[offset + 1];
+
+  // Unlike global variables, we don't have the variable name but we can at
+  // least show it's slot number in the VM if that counts for anything.
+  printf("%-16s %4d\n", name, slot);
+  return offset + 2;
+}
+
 static unsigned int jump(Chunk *chunk, int sign, int offset) {
   const char *name = opCodeStr(chunk->code[offset]);
   uint16_t toJump  = (chunk->code[offset + 1] << 8) | chunk->code[offset + 2];
@@ -39,6 +49,8 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_GET_GLOBAL:
     case OP_SET_GLOBAL:
     case OP_CONSTANT:      return constant(chunk, offset);
+    case OP_GET_LOCAL:
+    case OP_SET_LOCAL:     return byte(chunk, offset);
     case OP_JUMP:
     case OP_JUMP_IF_TRUE:
     case OP_JUMP_IF_FALSE: return jump(chunk, 1, offset);

@@ -175,6 +175,19 @@ static InterpretResult run() {
         }
         continue;
       }
+      case OP_GET_LOCAL: {
+        // Push the local's value onto the stack because other instructions
+        // look for data at the top of the stack (therefore not redundant).
+        uint8_t stackSlot = READ_BYTE();
+        push(vm.stack[stackSlot]);
+        continue;
+      }
+      case OP_SET_LOCAL: {
+        // Assignment is an expression, so leave the value on the stack's top.
+        uint8_t stackSlot   = READ_BYTE();
+        vm.stack[stackSlot] = peek(0);
+        continue;
+      }
       case OP_PRINT: {
         printValue(pop());
         printf("\n");

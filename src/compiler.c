@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct parser {
   Token cur;
@@ -17,6 +18,25 @@ typedef struct parser {
   bool hadError;
   bool panicMode;
 } Parser;
+
+// Represents a local variable
+typedef struct local {
+  Token name;
+  int depth;
+} Local;
+
+typedef struct compiler {
+  Local locals[UINT8_MAX + 1];
+  int localCount;
+  int scopeDepth; // Number of surrounding blocks (global = 0, etc...)
+} Compiler;
+
+#define IN_A_LOCAL_SCOPE(compiler) ((compiler)->scopeDepth > 0)
+#define IN_GLOBAL_SCOPE(compiler)  ((compiler)->scopeDepth == 0)
+
+#define LOCAL_NOT_FOUND            (-1)
+#define LOCAL_UNINITIALIZED        (-1)
+#define LAST_LOCAL(compiler)       ((compiler)->locals[(compiler)->localCount - 1])
 
 // Types of expressions in the grammar's expression-related rules. These types
 // are returned up from the parser's recursive descent.
@@ -30,11 +50,14 @@ typedef enum expr_type {
 } ExprType;
 
 Parser parser;
+Compiler *currentCompiler;
 
 static void expression();
 static void declaration();
 static void statement();
 static void varDecl();
+
+static void emitByte(uint8_t byte);
 
 static Chunk *currentChunk() {
   return parser.chunk;
@@ -66,6 +89,32 @@ static void errorPrev(const char *message) {
 
 static void errorCur(const char *message) {
   errorAt(&parser.cur, message);
+}
+
+static void initCompiler(Compiler *compiler) {
+  compiler->localCount = 0;
+  compiler->scopeDepth = 0;
+  currentCompiler      = compiler;
+}
+
+static void beginScope() {
+  currentCompiler->scopeDepth++;
+}
+
+static void endScope() {
+  currentCompiler->scopeDepth--;
+
+  // When exiting the scope, we need to remove the variable declarations from
+  // the exiting scope, as well as cleanup the initializer values on the stack.
+  while (currentCompiler->localCount > 0 &&
+         LAST_LOCAL(currentCompiler).depth > currentCompiler->scopeDepth) {
+    emitByte(OP_POP);
+    currentCompiler->localCount--;
+  }
+}
+
+static void markInitialized() {
+  LAST_LOCAL(currentCompiler).depth = currentCompiler->scopeDepth;
 }
 
 static void advance() {
@@ -184,8 +233,90 @@ static uint8_t identifierConstant(Token *name) {
   return makeConstant(OBJ_VAL(identifier));
 }
 
+static bool identifiersEqual(Token *a, Token *b) {
+  return a->len == b->len && strncmp(a->start, b->start, a->len) == 0;
+}
+
+/*
+ * Walk backwards of the compilers locals array to find the LAST declared
+ * variable with the given name - then variable shadowing behaves correctly.
+ * Returns the index of the resolved local from the compilers locals array,
+ * otherwise -1 (macro `LOCAL_NOT_FOUND`). The resolved index corresponds with
+ * the VM's stack slot index layout.
+ */
+static int resolveLocalVar(Compiler *compiler, Token *name) {
+  for (int i = compiler->localCount - 1; i >= 0; i--) {
+    Local *local = &compiler->locals[i];
+
+    if (identifiersEqual(name, &local->name)) {
+      if (local->depth == LOCAL_UNINITIALIZED) {
+        errorPrev("can't read local variable in its own initializer");
+      }
+
+      return i;
+    }
+  }
+
+  return LOCAL_NOT_FOUND;
+}
+
+static void addLocalVar(Token name) {
+  if (currentCompiler->localCount >= UINT8_MAX + 1) {
+    errorPrev("exceeded max of 256 local variables in function");
+    return;
+  }
+
+  Local *local = &currentCompiler->locals[currentCompiler->localCount];
+  local->name  = name;
+  local->depth = LOCAL_UNINITIALIZED;
+
+  currentCompiler->localCount++;
+}
+
+static void declareVariable() {
+  // Global vars are late bound, so the compiler doesn't keep track of them.
+  if (IN_GLOBAL_SCOPE(currentCompiler))
+    return;
+
+  Token *name = &parser.prev;
+
+  // Check variable name is not redeclared in the same scope
+  // Work backwards from the compilers locals to work from inner scope outwards
+  for (int i = currentCompiler->localCount - 1; i >= 0; i--) {
+    Local *local = &currentCompiler->locals[i];
+
+    // Exit the loop early if we have checked all the locals in the compiler's
+    // current scope depth.
+    if (local->depth != LOCAL_UNINITIALIZED &&
+        local->depth < currentCompiler->scopeDepth)
+      break;
+
+    if (identifiersEqual(name, &local->name)) {
+      errorPrev("variable with this name already declared in this scope");
+    }
+  }
+
+  addLocalVar(*name);
+}
+
+static void defineVariable(uint8_t identifierOffset) {
+  // No runtime code needed to define a local variable as the temporary value
+  // emitted from the initializer (or nil) is already on top of the stack.
+  if (IN_A_LOCAL_SCOPE(currentCompiler)) {
+    markInitialized();
+    return;
+  }
+
+  emitBytes(OP_DEF_GLOBAL, identifierOffset);
+}
+
 static uint8_t parseVariable(const char *errorMessage) {
   consume(TOK_IDENTIFIER, errorMessage);
+
+  declareVariable();
+  if (IN_A_LOCAL_SCOPE(currentCompiler))
+    return 0;
+
   return identifierConstant(&parser.prev);
 }
 
@@ -231,8 +362,17 @@ static void grouping() {
 
 static void variable() {
   // Only get the variable if it is not being assigned to
-  if (!check(TOK_EQ)) {
+  if (check(TOK_EQ))
+    return;
+
+  Token *name = &parser.prev;
+
+  int localVarIndex = resolveLocalVar(currentCompiler, name);
+
+  if (localVarIndex == LOCAL_NOT_FOUND) {
     emitBytes(OP_GET_GLOBAL, identifierConstant(&parser.prev));
+  } else {
+    emitBytes(OP_GET_LOCAL, localVarIndex);
   }
 }
 
@@ -415,7 +555,15 @@ static void assignment() {
     switch (exprType) {
       case EXPR_VAR: {
         assignment();
-        emitBytes(OP_SET_GLOBAL, identifierConstant(&name));
+
+        int localVarIndex = resolveLocalVar(currentCompiler, &name);
+
+        if (localVarIndex == LOCAL_NOT_FOUND) {
+          emitBytes(OP_SET_GLOBAL, identifierConstant(&name));
+        } else {
+          emitBytes(OP_SET_LOCAL, localVarIndex);
+        }
+
         break;
       }
       default: errorPrev("invalid assignment target");
@@ -428,11 +576,15 @@ static void expression() {
 }
 
 static void blockStmt() {
+  beginScope();
+
   while (!check(TOK_RIGHT_BRACE) && !check(TOK_EOF)) {
     declaration();
   }
 
   consume(TOK_RIGHT_BRACE, "expect '}' at end of block");
+
+  endScope();
 }
 
 static void exprStmt() {
@@ -500,6 +652,7 @@ static void whileStmt() {
 
 static void forStmt() {
 #define NO_EXIT_LOOP_OFFSET (-1)
+  beginScope();
 
   consume(TOK_LEFT_PAREN, "expect '(' after 'for'");
 
@@ -552,6 +705,8 @@ static void forStmt() {
     emitByte(OP_POP); // pop loop condition off stack when it is false
   }
 
+  endScope();
+
 #undef NO_EXIT_LOOP_OFFSET
 }
 
@@ -594,7 +749,7 @@ static void varDecl() {
   }
 
   consume(TOK_SEMICOLON, "expect ';' after variable declaration");
-  emitBytes(OP_DEF_GLOBAL, identifierIndex);
+  defineVariable(identifierIndex);
 }
 
 static void declaration() {
@@ -616,6 +771,9 @@ static void endCompiler() {
 bool compile(const char *source, Chunk *chunk) {
   Scanner scanner;
   initScanner(&scanner, source);
+
+  Compiler compiler;
+  initCompiler(&compiler);
 
   parser.scanner   = &scanner;
   parser.chunk     = chunk;

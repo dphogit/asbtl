@@ -259,6 +259,18 @@ MU_TEST(test_compile_setGlobalVariable) {
   ASSERT_CONSTS(chunk, constants, 1);
 }
 
+MU_TEST(test_compile_localVariable) {
+  const char *source = "{ var x; x = true; print x; }";
+
+  uint8_t bytecode[] = {OP_NIL,       OP_TRUE, OP_SET_LOCAL, 0x00,   OP_POP,
+                        OP_GET_LOCAL, 0x00,    OP_PRINT,     OP_POP, OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 10);
+}
+
 MU_TEST_SUITE(compiler_tests) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -271,7 +283,7 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_ifElseStmt);
   MU_RUN_TEST(test_compile_whileLoop);
 
-  // Where I struggled! Had to take an `incremental` approach :)
+  // Loops were tough! Had to take an `incremental` approach :)
   MU_RUN_TEST(test_compile_forLoop_noClauses);
   MU_RUN_TEST(test_compile_forLoop_initializerOnly);
   MU_RUN_TEST(test_compile_forLoop_initializerAndCondition);
@@ -280,4 +292,5 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_defineGlobalVariable);
   MU_RUN_TEST(test_compile_getGlobalVariable);
   MU_RUN_TEST(test_compile_setGlobalVariable);
+  MU_RUN_TEST(test_compile_localVariable);
 }

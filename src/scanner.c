@@ -197,7 +197,9 @@ Token scanNext(Scanner *scanner) {
     case '{': return token(scanner, TOK_LEFT_BRACE);
     case '}': return token(scanner, TOK_RIGHT_BRACE);
     case ';': return token(scanner, TOK_SEMICOLON);
+    case ':': return token(scanner, TOK_COLON);
     case '"': return string(scanner);
+    case '?': return token(scanner, TOK_QUESTION);
     case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);
     case '!':
       return token(scanner, match(scanner, '=') ? TOK_BANG_EQ : TOK_BANG);

@@ -44,7 +44,9 @@ whileStmt  : 'while' '(' expression ')' statement ';' ;
 expression : assignment ;
 
 assignment : IDENTIFIER '=' assignment
-           | or ;
+           | conditional;
+
+conditional: or ( '?' expression ':' conditional )? ;
 
 or         : and ( '||' and )* ;
 

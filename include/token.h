@@ -21,6 +21,7 @@ typedef enum tok_type {
   TOK_GREATER_EQ,
   TOK_OR,
   TOK_AND,
+  TOK_QUESTION,
 
   TOK_NUMBER,
   TOK_IDENTIFIER,
@@ -33,6 +34,7 @@ typedef enum tok_type {
   TOK_WHILE,
   TOK_FOR,
 
+  TOK_COLON,
   TOK_SEMICOLON,
   TOK_PRINT,
   TOK_ERR,

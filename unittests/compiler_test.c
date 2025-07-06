@@ -118,6 +118,19 @@ MU_TEST(test_compile_ifElseStmt) {
   ASSERT_BYTECODE(chunk, bytecode, 14);
 }
 
+MU_TEST(test_compile_conditional) {
+  const char *source = "print true ? true : false;";
+
+  uint8_t bytecode[] = {OP_TRUE,  OP_JUMP_IF_FALSE, 0x00,     0x05, OP_POP,
+                        OP_TRUE,  OP_JUMP,          0x00,     0x02, OP_POP,
+                        OP_FALSE, OP_PRINT,         OP_RETURN};
+
+  bool success = compile(source, &chunk);
+
+  ASSERT_EQ_INT(true, success);
+  ASSERT_BYTECODE(chunk, bytecode, 13);
+}
+
 MU_TEST(test_compile_whileLoop) {
   const char *source = "while (true) print true;";
 
@@ -281,9 +294,10 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_logicalOr);
   MU_RUN_TEST(test_compile_ifStmt);
   MU_RUN_TEST(test_compile_ifElseStmt);
+  MU_RUN_TEST(test_compile_conditional);
   MU_RUN_TEST(test_compile_whileLoop);
 
-  // Loops were tough! Had to take an `incremental` approach :)
+  // 'for' loops were tough! Had to take an `incremental` approach :)
   MU_RUN_TEST(test_compile_forLoop_noClauses);
   MU_RUN_TEST(test_compile_forLoop_initializerOnly);
   MU_RUN_TEST(test_compile_forLoop_initializerAndCondition);

@@ -105,3 +105,64 @@ teardown() {
   assert_line -n 1 '2'
   assert_line -n 2 '3'
 }
+
+@test "conditional true branch" {
+  _run_asbtl "var x = 2; print x == 2 ? 1 : 0;"
+  assert_success
+  assert_output "1"
+}
+
+@test "conditional false branch" {
+  _run_asbtl "var x = 3; print x == 2 ? 1 : 0;"
+  assert_success
+  assert_output "0"
+}
+
+@test "conditional long chain" {
+  _run_asbtl "print false ? 1 : false ? 2 : false ? 3 : 4;"
+  assert_success
+  assert_output "4"
+}
+
+@test "conditional nested" {
+  _run_asbtl "print true ? false ? 1 : 2 : 3;"
+  assert_success
+  assert_output "2"
+}
+
+@test "conditional expression in then branch" {
+  _run_asbtl "print true ? 1 + 2 : 7;"
+  assert_success
+  assert_output "3"
+}
+
+@test "conditional expression in false branch" {
+  _run_asbtl "print false ? 1 : 3 + 4;"
+  assert_success
+  assert_output "7"
+}
+
+@test "conditional used inside expression" {
+  _run_asbtl "print (true ? 2 : 3) + 4;"
+  assert_success
+  assert_output "6"
+}
+
+@test "conditional respects higher precedence operators" {
+  # (true || false) => true, true ? 1 : 2 => 1
+  _run_asbtl "print true || false ? 1 : 2;"
+  assert_success
+  assert_output "1"
+}
+
+@test "conditional missing colon gives error" {
+  _run_asbtl "print true ? 1;"
+  assert_failure
+  assert_output -p "expect ':' after then branch of conditional"
+}
+
+@test "conditional missing else branch" {
+  _run_asbtl "print true ? 1: ;"
+  assert_failure
+  assert_output -p "expect expression"
+}

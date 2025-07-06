@@ -44,6 +44,7 @@ typedef enum expr_type {
   EXPR_BINARY,
   EXPR_GROUP,
   EXPR_LITERAL,
+  EXPR_TERNARY,
   EXPR_UNARY,
   EXPR_VAR,
   EXPR_ERR,
@@ -544,8 +545,34 @@ static ExprType logicalOr() {
   return exprType;
 }
 
-static void assignment() {
+static ExprType conditional() {
+  // This statement will compile the condition already if parsing conditional.
   ExprType exprType = logicalOr();
+
+  if (match(TOK_QUESTION)) {
+    exprType = EXPR_TERNARY;
+
+    // Then branch - jump over condition if false. Also emit a jump at the end
+    // of the then branch to jump over the else branch if condition is true.
+    int jumpToElseOperandOffset = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // pop condition
+    expression();
+    int jumpOverElseOperandOffset = emitJump(OP_JUMP);
+
+    consume(TOK_COLON, "expect ':' after then branch of conditional");
+
+    // Else branch - jump here if condition is false.
+    patchJump(jumpToElseOperandOffset);
+    emitByte(OP_POP); // pop condition
+    conditional();
+    patchJump(jumpOverElseOperandOffset);
+  }
+
+  return exprType;
+}
+
+static void assignment() {
+  ExprType exprType = conditional();
 
   if (check(TOK_EQ)) {
     Token name = parser.prev;

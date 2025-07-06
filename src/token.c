@@ -21,6 +21,7 @@ char *tokTypeStr(TokType type) {
     case TOK_GREATER_EQ:  return "TOK_GREATER_EQ";
     case TOK_OR:          return "TOK_OR";
     case TOK_AND:         return "TOK_AND";
+    case TOK_QUESTION:    return "TOK_QUESTION";
     case TOK_NUMBER:      return "TOK_NUMBER";
     case TOK_IDENTIFIER:  return "TOK_IDENTIFIER";
     case TOK_TRUE:        return "TOK_TRUE";
@@ -31,8 +32,9 @@ char *tokTypeStr(TokType type) {
     case TOK_ELSE:        return "TOK_ELSE";
     case TOK_WHILE:       return "TOK_WHILE";
     case TOK_FOR:         return "TOK_FOR";
-    case TOK_PRINT:       return "TOK_PRINT";
+    case TOK_COLON:       return "TOK_COLON";
     case TOK_SEMICOLON:   return "TOK_SEMICOLON";
+    case TOK_PRINT:       return "TOK_PRINT";
     case TOK_ERR:         return "TOK_ERR";
     case TOK_EOF:         return "TOK_EOF";
   }

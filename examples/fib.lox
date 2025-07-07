@@ -1,0 +1,10 @@
+func fib(n) {
+  return n < 2 ? n : fib(n - 2) + fib(n - 1);
+}
+
+var start = clock();
+var result = fib(35);
+var finish = clock();
+
+print "fib(35) took (secs): ";
+print finish - start;

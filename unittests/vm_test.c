@@ -6,7 +6,8 @@ MU_TEST(test_initVM) {
   initVM();
 
   ASSERT_EQ_INT(true, vm.stackTop == vm.stack);
-  ASSERT_EQ_INT(true, vm.objs == NULL);
+
+  freeVM();
 }
 
 MU_TEST(test_freeVM) {

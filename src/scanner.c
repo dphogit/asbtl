@@ -123,12 +123,14 @@ static TokType identifierType(Scanner *scanner) {
         switch (scanner->start[1]) {
           case 'a': return checkKeyword(scanner, 2, 3, "lse", TOK_FALSE);
           case 'o': return checkKeyword(scanner, 2, 1, "r", TOK_FOR);
+          case 'u': return checkKeyword(scanner, 2, 2, "nc", TOK_FUNC);
         }
       }
       break;
     case 'i': return checkKeyword(scanner, 1, 1, "f", TOK_IF);
     case 'n': return checkKeyword(scanner, 1, 2, "il", TOK_NIL);
     case 'p': return checkKeyword(scanner, 1, 4, "rint", TOK_PRINT);
+    case 'r': return checkKeyword(scanner, 1, 5, "eturn", TOK_RETURN);
     case 't': return checkKeyword(scanner, 1, 3, "rue", TOK_TRUE);
     case 'v': return checkKeyword(scanner, 1, 2, "ar", TOK_VAR);
     case 'w': return checkKeyword(scanner, 1, 4, "hile", TOK_WHILE);
@@ -198,6 +200,7 @@ Token scanNext(Scanner *scanner) {
     case '}': return token(scanner, TOK_RIGHT_BRACE);
     case ';': return token(scanner, TOK_SEMICOLON);
     case ':': return token(scanner, TOK_COLON);
+    case ',': return token(scanner, TOK_COMMA);
     case '"': return string(scanner);
     case '?': return token(scanner, TOK_QUESTION);
     case '=': return token(scanner, match(scanner, '=') ? TOK_EQ_EQ : TOK_EQ);

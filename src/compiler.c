@@ -14,7 +14,6 @@ typedef struct parser {
   Token cur;
   Token prev;
   Scanner *scanner;
-  Chunk *chunk; // Chunk the parser will emit to
   bool hadError;
   bool panicMode;
 } Parser;
@@ -25,11 +24,21 @@ typedef struct local {
   int depth;
 } Local;
 
+typedef enum func_type {
+  TYPE_FUNC,
+  TYPE_SCRIPT // Top level
+} FuncType;
+
 typedef struct compiler {
+  struct compiler *enclosing; // The compiler/function that surrounds this one
+  ObjFunc *func;              // Current function being compiled
+  FuncType type;              // Type of function currently being compiled
   Local locals[UINT8_MAX + 1];
   int localCount;
   int scopeDepth; // Number of surrounding blocks (global = 0, etc...)
 } Compiler;
+
+#define MAX_FUNC_PARAMS            255
 
 #define IN_A_LOCAL_SCOPE(compiler) ((compiler)->scopeDepth > 0)
 #define IN_GLOBAL_SCOPE(compiler)  ((compiler)->scopeDepth == 0)
@@ -60,8 +69,9 @@ static void varDecl();
 
 static void emitByte(uint8_t byte);
 
+// Always the chunk owned by the function that is being compiled.
 static Chunk *currentChunk() {
-  return parser.chunk;
+  return &currentCompiler->func->chunk;
 }
 
 static void errorAt(Token *token, const char *message) {
@@ -92,10 +102,26 @@ static void errorCur(const char *message) {
   errorAt(&parser.cur, message);
 }
 
-static void initCompiler(Compiler *compiler) {
+static void initCompiler(Compiler *compiler, FuncType type) {
+  compiler->enclosing  = currentCompiler;
+  compiler->func       = NULL;
+  compiler->type       = type;
   compiler->localCount = 0;
   compiler->scopeDepth = 0;
-  currentCompiler      = compiler;
+  compiler->func       = newFunc(); // Re-assigned immediately for GC reasons.
+
+  currentCompiler = compiler;
+
+  if (type != TYPE_SCRIPT) {
+    Token name                  = parser.prev;
+    currentCompiler->func->name = copyString(name.start, name.len);
+  }
+
+  // The compiler implicitly claims stack slot 0 for the VM's own internal use
+  Local *local      = &currentCompiler->locals[currentCompiler->localCount++];
+  local->depth      = 0;
+  local->name.start = "";
+  local->name.len   = 0;
 }
 
 static void beginScope() {
@@ -115,6 +141,9 @@ static void endScope() {
 }
 
 static void markInitialized() {
+  if (IN_GLOBAL_SCOPE(currentCompiler))
+    return;
+
   LAST_LOCAL(currentCompiler).depth = currentCompiler->scopeDepth;
 }
 
@@ -315,14 +344,21 @@ static uint8_t parseVariable(const char *errorMessage) {
   consume(TOK_IDENTIFIER, errorMessage);
 
   declareVariable();
-  if (IN_A_LOCAL_SCOPE(currentCompiler))
-    return 0;
 
-  return identifierConstant(&parser.prev);
+  return IN_A_LOCAL_SCOPE(currentCompiler) ? 0
+                                           : identifierConstant(&parser.prev);
 }
 
 static void emitReturn() {
+  emitByte(OP_NIL);
   emitByte(OP_RETURN);
+}
+
+static ObjFunc *endCompiler() {
+  emitReturn();
+  ObjFunc *compiledFunc = currentCompiler->func; // Contains the bytecode
+  currentCompiler       = currentCompiler->enclosing;
+  return compiledFunc;
 }
 
 // Skip tokens until a statement boundary is reached
@@ -417,6 +453,39 @@ static ExprType primary() {
   return EXPR_ERR;
 }
 
+static uint8_t args() {
+  if (match(TOK_RIGHT_PAREN)) {
+    return 0; // No arguments
+  }
+
+  uint8_t argCount = 0;
+
+  do {
+    if (argCount >= MAX_FUNC_PARAMS) {
+      errorCur("can't have more than 255 arguments");
+    }
+
+    expression(); // Each arg leaves value on the stack in prep for OP_CALL
+
+    argCount++;
+  } while (match(TOK_COMMA));
+
+  consume(TOK_RIGHT_PAREN, "expect ')' after arguments");
+
+  return argCount;
+}
+
+static ExprType call() {
+  ExprType exprType = primary();
+
+  if (match(TOK_LEFT_PAREN)) {
+    uint8_t argCount = args();
+    emitBytes(OP_CALL, argCount);
+  }
+
+  return exprType;
+}
+
 static ExprType unary() {
   // allow recursive calls to itself for multiple prefixes e.g. "--5"
   if (match(TOK_BANG)) {
@@ -431,7 +500,7 @@ static ExprType unary() {
     return EXPR_UNARY;
   }
 
-  return primary();
+  return call();
 }
 
 static ExprType factor() {
@@ -737,6 +806,21 @@ static void forStmt() {
 #undef NO_EXIT_LOOP_OFFSET
 }
 
+static void returnStmt() {
+  if (currentCompiler->type == TYPE_SCRIPT) {
+    errorPrev("can't return from top-level code");
+  }
+
+  if (match(TOK_SEMICOLON)) {
+    emitReturn();
+    return;
+  }
+
+  expression();
+  consume(TOK_SEMICOLON, "expect ';' after return value");
+  emitByte(OP_RETURN);
+}
+
 static void statement() {
   if (match(TOK_LEFT_BRACE)) {
     blockStmt();
@@ -763,7 +847,56 @@ static void statement() {
     return;
   }
 
+  if (match(TOK_RETURN)) {
+    returnStmt();
+    return;
+  }
+
   exprStmt();
+}
+
+static void func(FuncType type) {
+  // Create a separate `Compiler` for each function compiled. Then, as the body
+  // is compiled all the emitted bytecode goes to the Compiler owned function.
+  Compiler compiler;
+  initCompiler(&compiler, type);
+
+  beginScope();
+
+  consume(TOK_LEFT_PAREN, "expect '(' after function name");
+
+  // Parameters - semantically these are local variables declared in the
+  // outermost lexical scope of the function body.
+  if (!check(TOK_RIGHT_PAREN)) {
+    do {
+      if (currentCompiler->func->arity >= MAX_FUNC_PARAMS) {
+        errorCur("can't have more than 255 parameters");
+      }
+
+      currentCompiler->func->arity++;
+
+      uint8_t constantIndex = parseVariable("expect parameter name");
+      defineVariable(constantIndex);
+    } while (match(TOK_COMMA));
+  }
+
+  consume(TOK_RIGHT_PAREN, "expect ')' after function parameters");
+  consume(TOK_LEFT_BRACE, "expect '{' at start of function body");
+  blockStmt();
+
+  ObjFunc *func = endCompiler();
+  emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(func)));
+
+  // There is no need for a corresponding endScope call to the beginScope call
+  // as the compiler is ended when reaching the function body end.
+}
+
+// Functions are first-class values, so a declaration stores it as a variable.
+static void funcDecl() {
+  uint8_t identifierIndex = parseVariable("expect function name");
+  markInitialized();
+  func(TYPE_FUNC);
+  defineVariable(identifierIndex);
 }
 
 static void varDecl() {
@@ -780,7 +913,9 @@ static void varDecl() {
 }
 
 static void declaration() {
-  if (match(TOK_VAR)) {
+  if (match(TOK_FUNC)) {
+    funcDecl();
+  } else if (match(TOK_VAR)) {
     varDecl();
   } else {
     statement();
@@ -791,19 +926,14 @@ static void declaration() {
   }
 }
 
-static void endCompiler() {
-  emitReturn();
-}
-
-bool compile(const char *source, Chunk *chunk) {
+ObjFunc *compile(const char *source) {
   Scanner scanner;
   initScanner(&scanner, source);
 
   Compiler compiler;
-  initCompiler(&compiler);
+  initCompiler(&compiler, TYPE_SCRIPT);
 
   parser.scanner   = &scanner;
-  parser.chunk     = chunk;
   parser.hadError  = false;
   parser.panicMode = false;
 
@@ -813,6 +943,6 @@ bool compile(const char *source, Chunk *chunk) {
     declaration();
   }
 
-  endCompiler();
-  return !parser.hadError;
+  ObjFunc *func = endCompiler();
+  return parser.hadError ? NULL : func;
 }

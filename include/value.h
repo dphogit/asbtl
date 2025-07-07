@@ -22,10 +22,10 @@ typedef struct value {
 } Value;
 
 // `Value` type checkers
-#define IS_NIL(value)  ((value.type) == VAL_NIL)
+#define IS_NIL(value)  ((value).type == VAL_NIL)
 #define IS_BOOL(value) ((value).type == VAL_BOOL)
 #define IS_NUM(value)  ((value).type == VAL_NUM)
-#define IS_OBJ(value)  ((value.type) == VAL_OBJ)
+#define IS_OBJ(value)  ((value).type == VAL_OBJ)
 
 // Convert from primitive C type to `Value` type
 #define NIL_VAL         ((Value){VAL_NIL, {.number = 0}})

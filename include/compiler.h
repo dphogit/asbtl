@@ -1,9 +1,10 @@
 #ifndef ASBTL_COMPILER_H
 #define ASBTL_COMPILER_H
 
-#include "chunk.h"
+#include "object.h"
 
-// Compile and write to the chunk. Returns true if compilation succeeded.
-bool compile(const char *source, Chunk *chunk);
+// Returns the object function contianing the chunk with bytecode if compilation
+// succeeded, otherwise a failure will return NULL.
+ObjFunc *compile(const char *source);
 
 #endif

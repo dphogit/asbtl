@@ -10,6 +10,10 @@ typedef enum tok_type {
   TOK_RIGHT_PAREN,
   TOK_LEFT_BRACE,
   TOK_RIGHT_BRACE,
+  TOK_COMMA,
+  TOK_COLON,
+  TOK_SEMICOLON,
+
   TOK_STRING,
   TOK_BANG,
   TOK_BANG_EQ,
@@ -33,9 +37,9 @@ typedef enum tok_type {
   TOK_ELSE,
   TOK_WHILE,
   TOK_FOR,
+  TOK_FUNC,
+  TOK_RETURN,
 
-  TOK_COLON,
-  TOK_SEMICOLON,
   TOK_PRINT,
   TOK_ERR,
   TOK_EOF,

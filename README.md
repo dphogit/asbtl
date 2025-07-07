@@ -8,6 +8,8 @@ language from [Crafting Interpreters](https://craftinginterpreters.com/).
 
 ## Information
 
+The [examples](./examples/) folder contains some example programs to run.
+
 ### Syntax Grammar
 
 Used for parsing the sequence of scanned tokens during bytecode compilation.
@@ -15,8 +17,11 @@ Used for parsing the sequence of scanned tokens during bytecode compilation.
 ```text
 program    : declaration* EOF ;
 
-declaration: varDecl
+declaration: funcDecl
+           | varDecl
            | statement
+
+funcDecl   : 'func' function ;
 
 varDecl    : 'var' IDENTIFIER ( '=' expression )? ';' ;
 
@@ -24,7 +29,8 @@ statement  : blockStmt
            | exprStmt
            | forStmt
            | ifStmt
-           | printStmt 
+           | printStmt
+           | returnStmt
            | whileStmt ;
 
 blockStmt  : '{' declaration* '}' ;
@@ -38,6 +44,8 @@ forStmt    : 'for' '(' ( varDecl | exprStmt | ';' )
 ifStmt     : 'if' '(' expression ')' statement ( 'else' statement )? ;
 
 printStmt  : 'print' expression ';' ;
+
+returnStmt : 'return' expression? ';' ;
 
 whileStmt  : 'while' '(' expression ')' statement ';' ;
 
@@ -60,13 +68,21 @@ term       : factor ( ( '+' | '-' ) factor )* ;
 
 factor     : unary ( ( '*' | '/' ) unary )* ;
 
-unary      : (( '-' | '!' ) unary ) | primary ;
+unary      : (( '-' | '!' ) unary ) | call;
+
+call       : primary ( '(' args ')' )*
 
 primary    : NUMBER
            | STRING
            | 'false' | 'true' | 'nil'
            | IDENTIFIER
            | '(' expression ')' ;
+
+function   : IDENTIFIER '(' params? ')' blockStmt ;
+
+args       : expression ( ',' expression )* ;
+
+params     : IDENTIFIER ( ',' IDENTIFIER )* ;
 ```
 
 ### Lexical Grammar

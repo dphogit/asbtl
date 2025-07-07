@@ -22,6 +22,22 @@ static Obj *allocateObj(size_t size, ObjType type) {
   return obj;
 }
 
+ObjFunc *newFunc() {
+  ObjFunc *func = ALLOCATE_OBJ(ObjFunc, OBJ_FUNC);
+  func->arity   = 0;
+  func->name    = NULL;
+
+  initChunk(&func->chunk);
+
+  return func;
+}
+
+ObjNative *newNative(NativeFn func) {
+  ObjNative *native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
+  native->func      = func;
+  return native;
+}
+
 static ObjString *allocateObjString(char *chars, int n, uint32_t hash) {
   ObjString *str = ALLOCATE_OBJ(ObjString, OBJ_STRING);
   str->chars     = chars;
@@ -90,8 +106,19 @@ ObjString *concatenate(ObjString *a, ObjString *b) {
   return takeString(chars, n);
 }
 
+static void printFunc(ObjFunc *func) {
+  if (func->name == NULL) {
+    printf("<script>");
+    return;
+  }
+
+  printf("<fn %s>", func->name->chars);
+}
+
 void printObj(Value value) {
   switch (OBJ_TYPE(value)) {
     case OBJ_STRING: printf("%s", AS_CSTRING(value)); break;
+    case OBJ_FUNC:   printFunc(AS_FUNC(value)); break;
+    case OBJ_NATIVE: printf("<native fn>"); break;
   }
 }

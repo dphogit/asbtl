@@ -49,6 +49,7 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_GET_GLOBAL:
     case OP_SET_GLOBAL:
     case OP_CONSTANT:      return constant(chunk, offset);
+    case OP_CALL:
     case OP_GET_LOCAL:
     case OP_SET_LOCAL:     return byte(chunk, offset);
     case OP_JUMP:

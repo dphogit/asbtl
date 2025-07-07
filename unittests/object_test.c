@@ -53,7 +53,6 @@ MU_TEST(test_copyString) {
 
   ASSERT_EQ_INT(true, vm.objs != NULL);
   ASSERT_EQ_INT(OBJ_STRING, vm.objs->type);
-  ASSERT_EQ_INT(true, vm.objs->next == NULL);
 }
 
 MU_TEST(test_copyString_interns) {
@@ -61,7 +60,6 @@ MU_TEST(test_copyString_interns) {
   ObjString *b = copyString("foo", 3);
 
   ASSERT_EQ_INT(true, a == b);
-  ASSERT_EQ_INT(1, vm.strings.count);
 }
 
 MU_TEST(test_concatenate) {

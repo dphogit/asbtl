@@ -24,8 +24,8 @@ MU_TEST(test_scanNext) {
 
   Scanner scanner;
   initScanner(&scanner,
-              "+ - * / ( ) { } ! ; : ? = < <= == != >= > || && 123 false "
-              "true nil \"string\" var myVar if else while for");
+              "+ - * / ( ) { } ! ; : , ? = < <= == != >= > || && 123 false "
+              "true nil \"string\" var myVar if else while for func return");
 
   Token tok = scanNext(&scanner);
   ASSERT_TOK(tok, "+", 1, TOK_PLUS);
@@ -59,6 +59,9 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, ":", 1, TOK_COLON);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, ",", 1, TOK_COMMA);
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "?", 1, TOK_QUESTION);
@@ -122,6 +125,12 @@ MU_TEST(test_scanNext) {
 
   tok = scanNext(&scanner);
   ASSERT_TOK(tok, "for", 3, TOK_FOR);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "func", 4, TOK_FUNC);
+
+  tok = scanNext(&scanner);
+  ASSERT_TOK(tok, "return", 6, TOK_RETURN);
 
   tok = scanNext(&scanner);
   ASSERT_EQ_INT(TOK_EOF, tok.type);

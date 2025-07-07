@@ -22,7 +22,7 @@ teardown() {
 @test "undefined variable gives runtime error" {
   _run_asbtl "print x;"
   assert_failure
-  assert_output -p "runtime error: undefined variable 'x'"
+  assert_output -p "undefined variable 'x'"
 }
 
 @test "assign variable updates value" {
@@ -34,13 +34,13 @@ teardown() {
 @test "undefined global variable gives runtime error" {
   _run_asbtl "x;"
   assert_failure
-  assert_output -p "runtime error: undefined variable 'x'"
+  assert_output -p "undefined variable 'x'"
 }
 
 @test "undefined local variable gives runtime error" {
   _run_asbtl "{ x; }"
   assert_failure
-  assert_output -p "runtime error: undefined variable 'x'"
+  assert_output -p "undefined variable 'x'"
 }
 
 @test "invalid assignment target gives error" {

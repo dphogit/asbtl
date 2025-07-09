@@ -1,5 +1,6 @@
 #include "debug.h"
 #include "chunk.h"
+#include "object.h"
 
 #include <stdio.h>
 
@@ -50,6 +51,8 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_SET_GLOBAL:
     case OP_CONSTANT:      return constant(chunk, offset);
     case OP_CALL:
+    case OP_GET_UPVALUE:
+    case OP_SET_UPVALUE:
     case OP_GET_LOCAL:
     case OP_SET_LOCAL:     return byte(chunk, offset);
     case OP_JUMP:
@@ -73,7 +76,30 @@ static unsigned int disassembleInstruction(Chunk *chunk, unsigned int offset) {
     case OP_GREATER_EQ:
     case OP_POP:
     case OP_PRINT:
+    case OP_CLOSE_UPVALUE:
     case OP_RETURN:        return single(chunk, offset);
+    case OP_CLOSURE:       {
+      offset++;
+      uint8_t constantIndex = chunk->code[offset++];
+      printf("%-16s %4d ", opCodeStr(OP_CLOSURE), constantIndex);
+      printValue(chunk->constants.values[constantIndex]);
+      printf("\n");
+
+      ObjFunc *func = AS_FUNC(chunk->constants.values[constantIndex]);
+      for (int i = 0; i < func->upvalueCount; i++) {
+        int isLocal      = chunk->code[offset];
+        char *isLocalOut = isLocal ? "local" : "upvalue";
+
+        int index = chunk->code[offset + 1];
+
+        printf("%04d      |                     %s %d\n", offset, isLocalOut,
+               index);
+
+        offset += 2;
+      }
+
+      return offset;
+    }
   }
 
   printf("Unknown opcode %d\n", opCode);

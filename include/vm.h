@@ -11,9 +11,9 @@
 
 // Represents a function invocation
 typedef struct call_frame {
-  ObjFunc *func; // The function object being executed
-  uint8_t *ip;   // Each frame has its own IP for next instruction to execute
-  Value *slots;  // Points into the VM's value stack at the first slot it uses
+  ObjClosure *closure; // The closure surrounding the ObjFunc being executed
+  uint8_t *ip;  // Each frame has its own IP for next instruction to execute
+  Value *slots; // Points into the VM's value stack at the first slot it uses
 } CallFrame;
 
 typedef struct vm {
@@ -21,9 +21,10 @@ typedef struct vm {
   int frameCount;               // Height of the call frame stack
   Value stack[STACK_MAX];
   Value *stackTop;
-  Obj *objs;         // Intrusive linked list of runtime allocated objects
-  HashTable strings; // String interning pool (hash set)
-  HashTable globals; // Global variables
+  Obj *objs;                // Intrusive list of runtime allocated objects
+  HashTable strings;        // String interning pool (hash set)
+  HashTable globals;        // Global variables
+  ObjUpvalue *openUpvalues; // Intrusive list of open upvalues
 } VM;
 
 extern VM vm;

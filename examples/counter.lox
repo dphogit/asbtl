@@ -1,0 +1,16 @@
+func makeCounter() {
+  var count = 0;
+
+  func increment() {
+    count = count + 1;
+    print count;
+  }
+
+  return increment;
+}
+
+var counter = makeCounter();
+
+counter();  // 1
+counter();  // 2
+counter();  // 3

@@ -34,7 +34,11 @@ const char *opCodeStr(OpCode opCode) {
     case OP_SET_GLOBAL:    return "OP_SET_GLOBAL";
     case OP_GET_LOCAL:     return "OP_GET_LOCAL";
     case OP_SET_LOCAL:     return "OP_SET_LOCAL";
+    case OP_GET_UPVALUE:   return "OP_GET_UPVALUE";
+    case OP_SET_UPVALUE:   return "OP_SET_UPVALUE";
+    case OP_CLOSE_UPVALUE: return "OP_CLOSE_UPVALUE";
     case OP_CALL:          return "OP_CALL";
+    case OP_CLOSURE:       return "OP_CLOSURE";
     case OP_PRINT:         return "OP_PRINT";
     case OP_RETURN:        return "OP_RETURN";
   }

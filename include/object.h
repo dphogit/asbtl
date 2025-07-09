@@ -11,16 +11,20 @@
 #define IS_STRING(value)  isObjType(value, OBJ_STRING)
 #define IS_FUNC(value)    isObjType(value, OBJ_FUNC)
 #define IS_NATIVE(value)  isObjType(value, OBJ_NATIVE)
+#define IS_CLOSURE(value) isObjType(value, OBJ_CLOSURE)
 
 #define AS_STRING(value)  ((ObjString *)AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 #define AS_FUNC(value)    ((ObjFunc *)AS_OBJ(value))
 #define AS_NATIVE(value)  (((ObjNative *)AS_OBJ(value))->func)
+#define AS_CLOSURE(value) ((ObjClosure *)AS_OBJ(value))
 
 typedef enum obj_type {
   OBJ_STRING,
   OBJ_FUNC,
   OBJ_NATIVE,
+  OBJ_CLOSURE,
+  OBJ_UPVALUE,
 } ObjType;
 
 struct obj {
@@ -40,7 +44,24 @@ typedef struct obj_func {
   int arity;   // Number of parameters the function expects
   Chunk chunk; // Each function has its own chunk
   ObjString *name;
+  int upvalueCount;
 } ObjFunc;
+
+// Runtime representation of upvalues, the closed-over vars no longer on stack
+typedef struct obj_upvalue {
+  Obj obj;
+  Value *location;          // Reference to the closed-over variable
+  Value closed;             // Variable value is here when upvalue is closed.
+  struct obj_upvalue *next; // Next open upvalue farther down the stack
+} ObjUpvalue;
+
+// The closure around a function
+typedef struct obj_closure {
+  Obj obj;
+  ObjFunc *func;
+  ObjUpvalue **upvalues; // Dynamically allocated array of upvalue pointers
+  int upvalueCount;
+} ObjClosure;
 
 // A native function takes an argument count and pointer to the first argument
 // on the value stack. Once done, returns the result value.
@@ -59,6 +80,8 @@ uint32_t hashString(const char *key, int n);
 
 ObjFunc *newFunc();
 ObjNative *newNative(NativeFn func);
+ObjClosure *newClosure(ObjFunc *func);
+ObjUpvalue *newUpvalue(Value *slot);
 
 ObjString makeObjString(const char *chars, int n);
 

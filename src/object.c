@@ -23,9 +23,10 @@ static Obj *allocateObj(size_t size, ObjType type) {
 }
 
 ObjFunc *newFunc() {
-  ObjFunc *func = ALLOCATE_OBJ(ObjFunc, OBJ_FUNC);
-  func->arity   = 0;
-  func->name    = NULL;
+  ObjFunc *func      = ALLOCATE_OBJ(ObjFunc, OBJ_FUNC);
+  func->arity        = 0;
+  func->name         = NULL;
+  func->upvalueCount = 0;
 
   initChunk(&func->chunk);
 
@@ -36,6 +37,27 @@ ObjNative *newNative(NativeFn func) {
   ObjNative *native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
   native->func      = func;
   return native;
+}
+
+ObjClosure *newClosure(ObjFunc *func) {
+  ObjUpvalue **upvalues = ALLOCATE(ObjUpvalue *, func->upvalueCount);
+  for (int i = 0; i < func->upvalueCount; i++) {
+    upvalues[i] = NULL;
+  }
+
+  ObjClosure *closure   = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+  closure->func         = func;
+  closure->upvalues     = upvalues;
+  closure->upvalueCount = func->upvalueCount;
+  return closure;
+}
+
+ObjUpvalue *newUpvalue(Value *slot) {
+  ObjUpvalue *upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
+  upvalue->location   = slot;
+  upvalue->next       = NULL;
+  upvalue->closed     = NIL_VAL;
+  return upvalue;
 }
 
 static ObjString *allocateObjString(char *chars, int n, uint32_t hash) {
@@ -64,7 +86,6 @@ uint32_t hashString(const char *key, int n) {
     hash ^= (uint8_t)key[i];
     hash *= FNV_32_PRIME;
   }
-
   return hash;
 }
 
@@ -117,8 +138,10 @@ static void printFunc(ObjFunc *func) {
 
 void printObj(Value value) {
   switch (OBJ_TYPE(value)) {
-    case OBJ_STRING: printf("%s", AS_CSTRING(value)); break;
-    case OBJ_FUNC:   printFunc(AS_FUNC(value)); break;
-    case OBJ_NATIVE: printf("<native fn>"); break;
+    case OBJ_STRING:  printf("%s", AS_CSTRING(value)); break;
+    case OBJ_FUNC:    printFunc(AS_FUNC(value)); break;
+    case OBJ_NATIVE:  printf("<native fn>"); break;
+    case OBJ_CLOSURE: printFunc(AS_CLOSURE(value)->func); break;
+    case OBJ_UPVALUE: printf("upvalue"); break;
   }
 }

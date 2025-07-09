@@ -289,11 +289,22 @@ MU_TEST(test_compile_localVariable) {
   ASSERT_BYTECODE(func->chunk, bytecode, 11);
 }
 
+MU_TEST(test_compile_localVariable_initializer) {
+  const char *source = "{ var x = true; }";
+
+  uint8_t bytecode[] = {OP_TRUE, OP_POP, OP_NIL, OP_RETURN};
+
+  ObjFunc *func = compile(source);
+
+  ASSERT_NOT_NULL(func);
+  ASSERT_BYTECODE(func->chunk, bytecode, 4);
+}
+
 MU_TEST(test_compile_function_noParams) {
   const char *source = "func printTrue() { print true; }";
 
-  uint8_t outerBytecode[] = {OP_CONSTANT, 0x01,   OP_DEF_GLOBAL,
-                             0x00,        OP_NIL, OP_RETURN};
+  uint8_t outerBytecode[] = {OP_CLOSURE, 0x01,   OP_DEF_GLOBAL,
+                             0x00,       OP_NIL, OP_RETURN};
   uint8_t innerBytecode[] = {OP_TRUE, OP_PRINT, OP_NIL, OP_RETURN};
 
   ObjFunc *mainFunc = compile(source);
@@ -331,6 +342,94 @@ MU_TEST(test_compile_function_returnValue) {
   ASSERT_BYTECODE(innerFunc->chunk, funcBytecode, 4);
 }
 
+MU_TEST(test_compile_function_simpleClosure) {
+  const char *source = "{"
+                       "  var a = 3;"
+                       "  func f() {"
+                       "    print a;"
+                       "  }"
+                       "}";
+
+  // locals = ["", "a", "f"]
+  // constants = [3, <fn f>]
+  uint8_t mainBytecode[] = {
+      OP_CONSTANT, 0x00,   OP_CLOSURE,       0x01,   UPVALUE_CAPTURES_LOCAL,
+      0x01,        OP_POP, OP_CLOSE_UPVALUE, OP_NIL, OP_RETURN};
+
+  // upvalues: [(local=true, i=1)]
+  uint8_t fBytecode[] = {OP_GET_UPVALUE, 0x00, OP_PRINT, OP_NIL, OP_RETURN};
+
+  ObjFunc *main = compile(source);
+
+  ASSERT_NOT_NULL(main);
+  ASSERT_BYTECODE(main->chunk, mainBytecode, 10);
+  ASSERT_EQ_INT(2, main->chunk.constants.count);
+  ASSERT_EQ_INT(true, valuesEq(NUM_VAL(3), main->chunk.constants.values[0]));
+  ASSERT_EQ_INT(true, IS_FUNC(main->chunk.constants.values[1]));
+
+  ObjFunc *f = AS_FUNC(main->chunk.constants.values[1]);
+
+  ASSERT_BYTECODE(f->chunk, fBytecode, 5);
+  ASSERT_EQ_INT(1, f->upvalueCount);
+  ASSERT_STREQ("f", f->name->chars);
+  ASSERT_EQ_INT(0, f->arity);
+}
+
+MU_TEST(test_compile_function_counterClosure) {
+  const char *source = "func makeCounter() {"
+                       "  var count = 0;"
+                       "  func inc() { count = count + 1; print count; }"
+                       "  return inc;"
+                       "}";
+
+  // constants = ["makeCounter", <fn makeCounter>]
+  uint8_t mainBytecode[] = {OP_CLOSURE, 0x01,   OP_DEF_GLOBAL,
+                            0x00,       OP_NIL, OP_RETURN};
+
+  // locals = ["", "count", "inc"]
+  // constants: [0, <fn inc>]
+  uint8_t makeCounterBytecode[] = {
+      OP_CONSTANT,  0x00, OP_CLOSURE, 0x01,   UPVALUE_CAPTURES_LOCAL, 0x01,
+      OP_GET_LOCAL, 0x02, OP_RETURN,  OP_POP, OP_CLOSE_UPVALUE,       OP_NIL,
+      OP_RETURN};
+
+  // constants: [1]
+  // upvalues = [(local=true, i=1)]
+  uint8_t incBytecode[] = {OP_GET_UPVALUE, 0x00,           OP_CONSTANT, 0x00,
+                           OP_ADD,         OP_SET_UPVALUE, 0x00,        OP_POP,
+                           OP_GET_UPVALUE, 0x00,           OP_PRINT,    OP_NIL,
+                           OP_RETURN};
+
+  ObjFunc *main = compile(source);
+
+  ASSERT_NOT_NULL(main);
+  ASSERT_BYTECODE(main->chunk, mainBytecode, 6);
+  ASSERT_EQ_INT(2, main->chunk.constants.count);
+  ASSERT_EQ_INT(true, IS_STRING(main->chunk.constants.values[0]));
+  ASSERT_STREQ("makeCounter", AS_CSTRING(main->chunk.constants.values[0]));
+  ASSERT_EQ_INT(true, IS_FUNC(main->chunk.constants.values[1]));
+
+  ObjFunc *makeCounter = AS_FUNC(main->chunk.constants.values[1]);
+  ASSERT_STREQ("makeCounter", makeCounter->name->chars);
+  ASSERT_EQ_INT(0, makeCounter->arity);
+
+  Chunk counterChunk = makeCounter->chunk;
+  ASSERT_BYTECODE(makeCounter->chunk, makeCounterBytecode, 13);
+  ASSERT_EQ_INT(2, counterChunk.constants.count);
+  ASSERT_EQ_INT(true, valuesEq(NUM_VAL(0), counterChunk.constants.values[0]));
+  ASSERT_EQ_INT(true, IS_FUNC(counterChunk.constants.values[1]));
+
+  ObjFunc *inc = AS_FUNC(counterChunk.constants.values[1]);
+  ASSERT_STREQ("inc", inc->name->chars);
+  ASSERT_EQ_INT(0, inc->arity);
+  ASSERT_EQ_INT(inc->upvalueCount, 1);
+
+  Chunk incChunk = inc->chunk;
+  ASSERT_BYTECODE(inc->chunk, incBytecode, 13);
+  ASSERT_EQ_INT(1, incChunk.constants.count);
+  ASSERT_EQ_INT(true, valuesEq(NUM_VAL(1), incChunk.constants.values[0]));
+}
+
 MU_TEST_SUITE(compiler_tests) {
   MU_SUITE_CONFIGURE(&test_setup, &test_teardown);
 
@@ -354,7 +453,10 @@ MU_TEST_SUITE(compiler_tests) {
   MU_RUN_TEST(test_compile_getGlobalVariable);
   MU_RUN_TEST(test_compile_setGlobalVariable);
   MU_RUN_TEST(test_compile_localVariable);
+  MU_RUN_TEST(test_compile_localVariable_initializer);
 
   MU_RUN_TEST(test_compile_function_noParams);
   MU_RUN_TEST(test_compile_function_returnValue);
+  MU_RUN_TEST(test_compile_function_simpleClosure);
+  MU_RUN_TEST(test_compile_function_counterClosure);
 }

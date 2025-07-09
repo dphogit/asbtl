@@ -16,8 +16,9 @@ VM vm;
 #define TOP_CALLFRAME(vm) (&vm.frames[vm.frameCount - 1])
 
 static void resetStack() {
-  vm.stackTop   = vm.stack;
-  vm.frameCount = 0;
+  vm.stackTop     = vm.stack;
+  vm.frameCount   = 0;
+  vm.openUpvalues = NULL;
 }
 
 static Value pop() {
@@ -48,7 +49,7 @@ static void runtimeError(const char *format, ...) {
 
   for (int i = vm.frameCount - 1; i >= 0; i--) {
     CallFrame *frame = &vm.frames[i];
-    ObjFunc *func    = frame->func;
+    ObjFunc *func    = frame->closure->func;
     size_t offset    = frame->ip - func->chunk.code - 1;
 
     fprintf(stderr, "[line %d] in ", func->chunk.lines[offset]);
@@ -86,7 +87,9 @@ static void defineNativeFuncs() {
   defineNative("clock", clockNative);
 }
 
-static bool call(ObjFunc *func, int argCount) {
+static bool call(ObjClosure *closure, int argCount) {
+  ObjFunc *func = closure->func;
+
   if (argCount != func->arity) {
     runtimeError("expected %d arguments, but got %d", func->arity, argCount);
     return false;
@@ -100,8 +103,8 @@ static bool call(ObjFunc *func, int argCount) {
   CallFrame *frame = &vm.frames[vm.frameCount];
   vm.frameCount++;
 
-  frame->func = func;
-  frame->ip   = func->chunk.code;
+  frame->closure = closure;
+  frame->ip      = func->chunk.code;
 
   // slot 0 the compiler sets aside for class methods,
   // parameters start at slot 1 to align with arguments
@@ -113,8 +116,9 @@ static bool call(ObjFunc *func, int argCount) {
 static bool callValue(Value callee, int argCount) {
   if (IS_OBJ(callee)) {
     switch (OBJ_TYPE(callee)) {
-      case OBJ_FUNC:   return call(AS_FUNC(callee), argCount);
-      case OBJ_NATIVE: {
+      // case OBJ_FUNC:   return call(AS_FUNC(callee), argCount);
+      case OBJ_CLOSURE: return call(AS_CLOSURE(callee), argCount);
+      case OBJ_NATIVE:  {
         NativeFn native = AS_NATIVE(callee);
         Value *args     = vm.stackTop - argCount;
         Value result    = native(argCount, args);
@@ -131,6 +135,51 @@ static bool callValue(Value callee, int argCount) {
 
   runtimeError("can only call functions");
   return false;
+}
+
+static ObjUpvalue *captureUpvalue(Value *local) {
+  // Look for an existing upvalue before creating a new one by walking the
+  // intrusive list of open upvalues (starting from closest to top of stack).
+  ObjUpvalue *prev = NULL, *cur = vm.openUpvalues;
+  while (cur != NULL && cur->location > local) {
+    prev = cur;
+    cur  = cur->next;
+  }
+
+  // Found an exising upvalue capturing the variable, reuse it.
+  if (cur != NULL && cur->location == local) {
+    return cur;
+  }
+
+  // Otherwise, create a new upvalue for the local slot and insert it at the
+  // right location within the sorted list.
+  ObjUpvalue *createdUpvalue = newUpvalue(local);
+  createdUpvalue->next       = cur;
+
+  if (prev == NULL) {
+    vm.openUpvalues = createdUpvalue;
+  } else {
+    prev->next = createdUpvalue;
+  }
+
+  return createdUpvalue;
+}
+
+// Close every open upvalue pointing to the given stack slot or above it
+static void closeUpvalues(Value *lastSlot) {
+  while (vm.openUpvalues != NULL && vm.openUpvalues->location >= lastSlot) {
+    ObjUpvalue *upvalue = vm.openUpvalues;
+
+    // Closing an upvalue:
+    // 1. Copy the variable's value into the `closed` field. This is where they
+    //    live on the heap.
+    // 2. OP_GET_UPVALUE/OP_SET_UPVALUE dereferences the `location` pointer to
+    //    get the value, so we simply update the pointer to the `closed` field.
+    upvalue->closed   = *upvalue->location;
+    upvalue->location = &upvalue->closed;
+
+    vm.openUpvalues = upvalue->next;
+  }
 }
 
 void initVM() {
@@ -151,13 +200,14 @@ void freeVM() {
 static InterpretResult run() {
   CallFrame *frame = TOP_CALLFRAME(vm);
 
-#define READ_BYTE()     (*frame->ip++)
+#define READ_BYTE()  (*frame->ip++)
 
-#define READ_SHORT()    (frame->ip += 2, ((frame->ip[-2] << 8) | frame->ip[-1]))
+#define READ_SHORT() (frame->ip += 2, ((frame->ip[-2] << 8) | frame->ip[-1]))
 
-#define READ_CONSTANT() (frame->func->chunk.constants.values[READ_BYTE()])
+#define READ_CONSTANT() \
+  (frame->closure->func->chunk.constants.values[READ_BYTE()])
 
-#define READ_STRING()   AS_STRING(READ_CONSTANT())
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 
 #define BINARY_OP(valueType, op)                 \
   do {                                           \
@@ -280,6 +330,23 @@ static InterpretResult run() {
         frame->slots[stackSlot] = peek(0);
         continue;
       }
+      case OP_GET_UPVALUE: {
+        uint8_t slot = READ_BYTE();
+        push(*frame->closure->upvalues[slot]->location);
+        continue;
+      }
+      case OP_SET_UPVALUE: {
+        uint8_t slot                              = READ_BYTE();
+        *frame->closure->upvalues[slot]->location = peek(0);
+        continue;
+      }
+      case OP_CLOSE_UPVALUE: {
+        // The hoisted variable is at the stack's top.
+        // Close/manage the upvalues and then discard the stack slot.
+        closeUpvalues(vm.stackTop - 1);
+        pop();
+        continue;
+      }
       case OP_CALL: {
         int argCount = READ_BYTE();
         Value value  = peek(argCount);
@@ -293,6 +360,30 @@ static InterpretResult run() {
         frame = TOP_CALLFRAME(vm);
         continue;
       }
+      case OP_CLOSURE: {
+        ObjFunc *func       = AS_FUNC(READ_CONSTANT());
+        ObjClosure *closure = newClosure(func);
+        push(OBJ_VAL(closure));
+
+        // Iterate over the pair of operands for each upvalue and capture it
+        // from the enclosing function or a higher surrounding function
+        // depending on the isLocal operand byte of the upvalue.
+        for (int i = 0; i < closure->upvalueCount; i++) {
+          uint8_t isLocal = READ_BYTE();
+          uint8_t index   = READ_BYTE();
+
+          // Capturing upvalues from the enclosing function (isLocal = false):
+          // An OP_CLOSURE is emitted at the end of a function declaration, so
+          // the moment we are executing that declaration, the current function
+          // is the enclosing one - which is stored in the call frame at the
+          // top of the callstack. So, to grab an upvalue from the enclosing
+          // function we can directly read it from the the `frame` variable.
+          closure->upvalues[i] = isLocal ? captureUpvalue(frame->slots + index)
+                                         : frame->closure->upvalues[index];
+        }
+
+        continue;
+      }
       case OP_PRINT: {
         printValue(pop());
         printf("\n");
@@ -300,6 +391,8 @@ static InterpretResult run() {
       }
       case OP_RETURN: {
         Value returnValue = pop();
+
+        closeUpvalues(frame->slots);
 
         // Discard callframe
         vm.frameCount--;
@@ -332,15 +425,19 @@ static InterpretResult run() {
 }
 
 InterpretResult interpret(const char *source) {
-  // Compile and get the top level code
+  // Compile and get the top level code - like a "main" function.
   ObjFunc *func = compile(source);
   if (func == NULL)
     return INTERPRET_COMPILER_ERR;
 
-  // Store function on stack and prepare initial call frame to execute its code.
-  // The functions stack window starts at the bottom of the VM's stack.
+  // Store main function closure on stack, it's stack window starts at the
+  // bottom of the VM's stack. We push/pop the func before/after the closure
+  // creation for the GC to be aware of the heap-allocated object ObjFunc.
   push(OBJ_VAL(func));
-  call(func, 0);
+  ObjClosure *closure = newClosure(func);
+  pop();
+  push(OBJ_VAL(closure));
+  call(closure, 0);
 
   return run();
 }

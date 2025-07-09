@@ -22,12 +22,19 @@ typedef struct parser {
 typedef struct local {
   Token name;
   int depth;
+  bool isCaptured; // True if captured by a later nested function declaration.
 } Local;
 
 typedef enum func_type {
   TYPE_FUNC,
   TYPE_SCRIPT // Top level
 } FuncType;
+
+typedef struct upvalue {
+  uint8_t index; // The local slot the upvalue is capturing
+  bool isLocal;  // Whether the closure captures a local or an upvalue from a
+                 // surrounding function
+} Upvalue;
 
 typedef struct compiler {
   struct compiler *enclosing; // The compiler/function that surrounds this one
@@ -36,6 +43,7 @@ typedef struct compiler {
   Local locals[UINT8_MAX + 1];
   int localCount;
   int scopeDepth; // Number of surrounding blocks (global = 0, etc...)
+  Upvalue upvalues[UINT8_MAX + 1]; // Closure variables
 } Compiler;
 
 #define MAX_FUNC_PARAMS            255
@@ -46,6 +54,7 @@ typedef struct compiler {
 #define LOCAL_NOT_FOUND            (-1)
 #define LOCAL_UNINITIALIZED        (-1)
 #define LAST_LOCAL(compiler)       ((compiler)->locals[(compiler)->localCount - 1])
+#define UPVALUE_NOT_FOUND          (-1)
 
 // Types of expressions in the grammar's expression-related rules. These types
 // are returned up from the parser's recursive descent.
@@ -122,6 +131,7 @@ static void initCompiler(Compiler *compiler, FuncType type) {
   local->depth      = 0;
   local->name.start = "";
   local->name.len   = 0;
+  local->isCaptured = false;
 }
 
 static void beginScope() {
@@ -135,7 +145,8 @@ static void endScope() {
   // the exiting scope, as well as cleanup the initializer values on the stack.
   while (currentCompiler->localCount > 0 &&
          LAST_LOCAL(currentCompiler).depth > currentCompiler->scopeDepth) {
-    emitByte(OP_POP);
+    emitByte(LAST_LOCAL(currentCompiler).isCaptured ? OP_CLOSE_UPVALUE
+                                                    : OP_POP);
     currentCompiler->localCount--;
   }
 }
@@ -290,17 +301,66 @@ static int resolveLocalVar(Compiler *compiler, Token *name) {
   return LOCAL_NOT_FOUND;
 }
 
+static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal) {
+  int upvalueCount = compiler->func->upvalueCount;
+
+  // Before adding a new upvalue, see if the function already has an upvalue
+  // that closes over that variable to save duplication of upvalue creations.
+  for (int i = 0; i < upvalueCount; i++) {
+    Upvalue *upvalue = &compiler->upvalues[i];
+    if (upvalue->index == index && upvalue->isLocal == isLocal)
+      return i;
+  }
+
+  if (upvalueCount >= UINT8_MAX + 1) {
+    errorPrev("exceeded max of 255 closure variables in function");
+    return 0;
+  }
+
+  compiler->upvalues[upvalueCount].index   = index;
+  compiler->upvalues[upvalueCount].isLocal = isLocal;
+
+  return compiler->func->upvalueCount++;
+}
+
+/*
+ * Recursively resolves the local identifier/upvalue in the enclosing compiler.
+ * If resolved, an upvalue is created for the function to use. Returns the index
+ * of the created upvalue in the compiler's function's upvalue list (this is
+ * the operand to OP_GET_UPVALUE and OP_SET_UPVALUE).
+ */
+static int resolveUpvalue(Compiler *compiler, Token *name) {
+  // Base case 1: No enclosing function - treat variable as global
+  if (compiler->enclosing == NULL)
+    return UPVALUE_NOT_FOUND;
+
+  // Base case 2: There is a matching local variable in the enclosing function.
+  // Mark it as captured by an upvalue.
+  int localIndex = resolveLocalVar(compiler->enclosing, name);
+  if (localIndex != LOCAL_NOT_FOUND) {
+    compiler->enclosing->locals[localIndex].isCaptured = true;
+    return addUpvalue(compiler, localIndex, true);
+  }
+
+  // Recursive case: Resolve the upvalue from the enclosing function.
+  // This works it way up the chain of functions until a base case is hit.
+  int upvalueIndex = resolveUpvalue(compiler->enclosing, name);
+  if (upvalueIndex != UPVALUE_NOT_FOUND)
+    return addUpvalue(compiler, localIndex, false);
+
+  return UPVALUE_NOT_FOUND;
+}
+
 static void addLocalVar(Token name) {
   if (currentCompiler->localCount >= UINT8_MAX + 1) {
     errorPrev("exceeded max of 256 local variables in function");
     return;
   }
 
-  Local *local = &currentCompiler->locals[currentCompiler->localCount];
-  local->name  = name;
-  local->depth = LOCAL_UNINITIALIZED;
-
-  currentCompiler->localCount++;
+  Local *local      = &currentCompiler->locals[currentCompiler->localCount++];
+  local->name       = name;
+  local->depth      = LOCAL_UNINITIALIZED;
+  local->isCaptured = false;
 }
 
 static void declareVariable() {
@@ -404,13 +464,21 @@ static void variable() {
 
   Token *name = &parser.prev;
 
-  int localVarIndex = resolveLocalVar(currentCompiler, name);
+  int localIndex = resolveLocalVar(currentCompiler, name);
 
-  if (localVarIndex == LOCAL_NOT_FOUND) {
-    emitBytes(OP_GET_GLOBAL, identifierConstant(&parser.prev));
-  } else {
-    emitBytes(OP_GET_LOCAL, localVarIndex);
+  if (localIndex != LOCAL_NOT_FOUND) {
+    emitBytes(OP_GET_LOCAL, localIndex);
+    return;
   }
+
+  int upvalueIndex = resolveUpvalue(currentCompiler, name);
+
+  if (upvalueIndex != UPVALUE_NOT_FOUND) {
+    emitBytes(OP_GET_UPVALUE, upvalueIndex);
+    return;
+  }
+
+  emitBytes(OP_GET_GLOBAL, identifierConstant(name));
 }
 
 static ExprType primary() {
@@ -652,12 +720,15 @@ static void assignment() {
       case EXPR_VAR: {
         assignment();
 
-        int localVarIndex = resolveLocalVar(currentCompiler, &name);
+        int arg = resolveLocalVar(currentCompiler, &name);
 
-        if (localVarIndex == LOCAL_NOT_FOUND) {
-          emitBytes(OP_SET_GLOBAL, identifierConstant(&name));
+        if (arg != LOCAL_NOT_FOUND) {
+          emitBytes(OP_SET_LOCAL, arg);
+        } else if ((arg = resolveUpvalue(currentCompiler, &name)) !=
+                   UPVALUE_NOT_FOUND) {
+          emitBytes(OP_SET_UPVALUE, arg);
         } else {
-          emitBytes(OP_SET_LOCAL, localVarIndex);
+          emitBytes(OP_SET_GLOBAL, identifierConstant(&name));
         }
 
         break;
@@ -885,7 +956,19 @@ static void func(FuncType type) {
   blockStmt();
 
   ObjFunc *func = endCompiler();
-  emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(func)));
+  emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(func)));
+
+  // For each upvalue the closure captures, there are two single byte operands.
+  // The first byte indicates the upvalue captures a local variable in the
+  // enclosing function (1), otherwise it captures a transitive upvalue (0).
+  // The second byte is the local slot or upvalue index to capture.
+  for (int i = 0; i < func->upvalueCount; i++) {
+    Upvalue *upvalue = &compiler.upvalues[i];
+
+    emitByte(upvalue->isLocal ? UPVALUE_CAPTURES_LOCAL
+                              : UPVALUE_CAPTURES_UPVALUE);
+    emitByte(upvalue->index);
+  }
 
   // There is no need for a corresponding endScope call to the beginScope call
   // as the compiler is ended when reaching the function body end.

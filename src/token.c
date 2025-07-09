@@ -39,6 +39,7 @@ char *tokTypeStr(TokType type) {
     case TOK_PRINT:       return "TOK_PRINT";
     case TOK_ERR:         return "TOK_ERR";
     case TOK_EOF:         return "TOK_EOF";
+    case TOK_RETURN:      return "TOK_RETURN";
   }
 
   return "unknown token type";

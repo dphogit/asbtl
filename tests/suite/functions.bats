@@ -136,3 +136,9 @@ teardown() {
   assert_failure
   assert_output -p "expect function name"
 }
+
+@test "calling non-function gives error" {
+  _run_asbtl "var f = 3; f();"
+  assert_failure
+  assert_output -p "can only call functions"
+}

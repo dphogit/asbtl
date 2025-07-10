@@ -146,3 +146,22 @@ ObjString *tableFindString(HashTable *ht, const char *key, int n,
     index = (index + 1) % ht->capacity; // open addressing probing strategy
   }
 }
+
+void markHashTable(HashTable *ht) {
+  for (unsigned int i = 0; i < ht->capacity; i++) {
+    HashTableEntry *entry = &ht->entries[i];
+
+    markObj((Obj *)entry->key);
+    markValue(entry->value);
+  }
+}
+
+void hashTableRemoveWhite(HashTable *ht) {
+  for (unsigned int i = 0; i < ht->capacity; i++) {
+    HashTableEntry *entry = &ht->entries[i];
+
+    if (entry->key != NULL && entry->key->obj.isMarked) {
+      hashTableRemove(ht, entry->key);
+    }
+  }
+}

@@ -2,6 +2,7 @@
 #include "test_runners.h"
 
 #include "minunit.h"
+#include "vm.h"
 
 #define ASSERT_CHUNK_INIT(chunk)                         \
   do {                                                   \
@@ -13,6 +14,14 @@
     ASSERT_EQ_INT(0, chunk.constants.capacity);          \
     ASSERT_EQ_INT(true, chunk.constants.values == NULL); \
   } while (0);
+
+void setup_chunk_tests() {
+  initVM();
+}
+
+void teardown_chunk_tests() {
+  freeVM();
+}
 
 MU_TEST(test_initChunk) {
   Chunk chunk;
@@ -60,6 +69,8 @@ MU_TEST(test_appendConstant) {
 }
 
 MU_TEST_SUITE(chunk_tests) {
+  MU_SUITE_CONFIGURE(setup_chunk_tests, teardown_chunk_tests);
+
   MU_RUN_TEST(test_initChunk);
   MU_RUN_TEST(test_appendChunk);
   MU_RUN_TEST(test_freeChunk);

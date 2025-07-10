@@ -40,4 +40,7 @@ bool hashTableRemove(HashTable *ht, ObjString *key);
 ObjString *tableFindString(HashTable *ht, const char *key, int n,
                            uint32_t hash);
 
+void markHashTable(HashTable *ht);
+void hashTableRemoveWhite(HashTable *ht);
+
 #endif

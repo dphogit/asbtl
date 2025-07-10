@@ -21,12 +21,12 @@ static void resetStack() {
   vm.openUpvalues = NULL;
 }
 
-static Value pop() {
+Value pop() {
   vm.stackTop--;
   return *vm.stackTop;
 }
 
-static void push(Value value) {
+void push(Value value) {
   *vm.stackTop = value;
   vm.stackTop++;
 }
@@ -184,7 +184,14 @@ static void closeUpvalues(Value *lastSlot) {
 
 void initVM() {
   resetStack();
-  vm.objs = NULL;
+
+  vm.objs           = NULL;
+  vm.bytesAllocated = 0;
+  vm.nextGC         = 1024 * 1024;
+  vm.grayCapacity   = 0;
+  vm.grayCount      = 0;
+  vm.grayStack      = NULL;
+
   initHashTable(&vm.globals);
   initHashTable(&vm.strings);
   defineNativeFuncs();
@@ -225,8 +232,11 @@ static InterpretResult run() {
     switch (opCode) {
       case OP_ADD: {
         if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
-          ObjString *b = AS_STRING(pop()), *a = AS_STRING(pop());
-          push(OBJ_VAL(concatenate(a, b)));
+          ObjString *b = AS_STRING(peek(0)), *a = AS_STRING(peek(1));
+          Value result = OBJ_VAL(concatenate(a, b));
+          pop();
+          pop();
+          push(result);
           continue;
         }
 

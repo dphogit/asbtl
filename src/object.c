@@ -1,4 +1,5 @@
 #include "object.h"
+#include "debug.h"
 #include "hashtable.h"
 #include "memory.h"
 #include "vm.h"
@@ -12,12 +13,17 @@
 #define ALLOCATE_OBJ(type, objType) (type *)allocateObj(sizeof(type), objType)
 
 static Obj *allocateObj(size_t size, ObjType type) {
-  Obj *obj  = reallocate(NULL, size, 0);
-  obj->type = type;
+  Obj *obj      = reallocate(NULL, size, 0);
+  obj->type     = type;
+  obj->isMarked = false;
 
   // Prepend allocated object to VM's intrusive linked list
   obj->next = vm.objs;
   vm.objs   = obj;
+
+#ifdef DEBUG_LOG_GC
+  printf("%p allocate %zu for %d\n", (void *)obj, size, type);
+#endif
 
   return obj;
 }
@@ -66,13 +72,15 @@ static ObjString *allocateObjString(char *chars, int n, uint32_t hash) {
   str->len       = n;
   str->hash      = hash;
 
+  push(OBJ_VAL(str));
   hashTableSet(&vm.strings, str, NIL_VAL);
+  pop();
 
   return str;
 }
 
 ObjString makeObjString(const char *chars, int n) {
-  Obj obj       = {OBJ_STRING, NULL};
+  Obj obj       = {OBJ_STRING, NULL, false};
   ObjString str = {obj, chars, n, hashString(chars, n)};
   return str;
 }

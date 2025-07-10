@@ -1,6 +1,7 @@
 #include "compiler.h"
 
 #include "chunk.h"
+#include "memory.h"
 #include "object.h"
 #include "scanner.h"
 #include "token.h"
@@ -1028,4 +1029,14 @@ ObjFunc *compile(const char *source) {
 
   ObjFunc *func = endCompiler();
   return parser.hadError ? NULL : func;
+}
+
+// Walk the chain of compilers and mark each one's ObjFunc
+void markCompilerRoots() {
+  Compiler *compiler = currentCompiler;
+
+  while (compiler != NULL) {
+    markObj((Obj *)compiler->func);
+    compiler = compiler->enclosing;
+  }
 }

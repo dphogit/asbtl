@@ -29,7 +29,8 @@ typedef enum obj_type {
 
 struct obj {
   ObjType type;
-  struct obj *next; // For GC
+  struct obj *next;
+  bool isMarked;
 };
 
 typedef struct obj_string {

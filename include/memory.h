@@ -1,6 +1,8 @@
 #ifndef ASBTL_MEMORY_H
 #define ASBTL_MEMORY_H
 
+#include "value.h"
+
 #include <stddef.h>
 
 // malloc
@@ -18,7 +20,9 @@
 #define FREE(type, ptr) reallocate(ptr, 0, sizeof(type))
 
 void *reallocate(void *ptr, size_t newSize, size_t oldSize);
-
+void markValue(Value value);
+void markObj(Obj *obj);
+void collectGarbage();
 void freeObjs();
 
 #endif

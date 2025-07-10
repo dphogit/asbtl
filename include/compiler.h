@@ -10,4 +10,6 @@
 // succeeded, otherwise a failure will return NULL.
 ObjFunc *compile(const char *source);
 
+void markCompilerRoots();
+
 #endif

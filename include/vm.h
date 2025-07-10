@@ -4,6 +4,7 @@
 #include "hashtable.h"
 #include "value.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define FRAMES_MAX 64
@@ -21,13 +22,21 @@ typedef struct vm {
   int frameCount;               // Height of the call frame stack
   Value stack[STACK_MAX];
   Value *stackTop;
-  Obj *objs;                // Intrusive list of runtime allocated objects
+  Obj *objs;       // Intrusive list of runtime allocated objects
+  Obj **grayStack; // The worklist of gray values for GC
+  int grayCount;
+  int grayCapacity;
+  size_t bytesAllocated;
+  size_t nextGC;
   HashTable strings;        // String interning pool (hash set)
   HashTable globals;        // Global variables
   ObjUpvalue *openUpvalues; // Intrusive list of open upvalues
 } VM;
 
 extern VM vm;
+
+Value pop();
+void push(Value value);
 
 void initVM();
 void freeVM();

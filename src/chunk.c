@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include "value.h"
+#include "vm.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -75,6 +76,8 @@ void freeChunk(Chunk *chunk) {
 }
 
 unsigned int appendConstant(Chunk *chunk, Value constant) {
+  push(constant);
   appendValueList(&chunk->constants, constant);
+  pop();
   return chunk->constants.count - 1;
 }
